@@ -1,0 +1,9 @@
+{
+  "name": "LongArm",
+  "version_number": "0.0.1",
+  "website_url": "https://github.com/mattsemar/dsp-long-arm",
+  "description": "Extend bot build range to cover entire planet, enable opening assembler/storage windows from map view",
+  "dependencies": [
+    "xiaoye97-BepInEx-5.4.5"
+  ]
+}
