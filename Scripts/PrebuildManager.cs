@@ -169,5 +169,10 @@ namespace LongArm.Scripts
             });
             return TakePrebuild();
         }
+
+        public void ReturnPrebuild(int id)
+        {
+            _preBuildIds.Add(id);
+        }
     }
 }

@@ -30,6 +30,10 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v0.2.0
+Added "Add Fuel" action for jumpstarting power network with missing fuel from player inventory
+Fixed issue with count of remaining prebuilds in FastBuild mode
+
 #### v0.1.0
 Made build helper modes independent from settings to extend build/inspect range
 

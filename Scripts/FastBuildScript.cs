@@ -65,7 +65,10 @@ namespace LongArm.Scripts
                     var count = 1;
                     GameMain.mainPlayer.package.TakeTailItems(ref itemId, ref count);
                     if (count == 0)
+                    {
+                        _prebuildManager.ReturnPrebuild(id);
                         return;
+                    }
                 }
                 GameMain.localPlanet.factory.BuildFinally(GameMain.mainPlayer, id);
             }

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using BepInEx;
 using HarmonyLib;
 using LongArm.Patch;
@@ -21,11 +23,18 @@ namespace LongArm
         public static LongArmPlugin instance;
         private bool _initted;
         public float SavedBuildArea { get; private set; }
-        private FreeBuildScript _freeBuildScript;
-        private FastBuildScript _fastBuildScript;
-        private PrebuildManager _prebuildManager;
-        private FlyBuildScript _flyBuildScript;
-        private LongArmUi _longArmUi;
+        private HashSet<Type> _scriptTypesInitted = new HashSet<Type>();
+        private List<Component> _scripts = new List<Component>();
+
+        private static readonly Type[] _scriptTypes =
+        {
+            typeof(FreeBuildScript),
+            typeof(FastBuildScript),
+            typeof(PrebuildManager),
+            typeof(FlyBuildScript),
+            typeof(PowerNetworkFiller),
+            typeof(LongArmUi)
+        };
 
         private void Awake()
         {
@@ -62,15 +71,11 @@ namespace LongArm
                 {
                     Disable();
                 }
+
                 _initted = true;
             }
-            InitScripts();
 
-            if (KeyBindPatch.GetKeyBind("ShowLongArmWindow").keyValue)
-            {
-                if (_longArmUi != null)
-                    _longArmUi.Visible = !_longArmUi.Visible;
-            }
+            InitScripts();
         }
 
         public void Disable()
@@ -80,61 +85,31 @@ namespace LongArm
 
         private void InitScripts()
         {
-            if (_fastBuildScript == null && GameMain.isRunning && GameMain.mainPlayer != null && GameMain.localPlanet != null)
+            if (GameMain.isRunning && GameMain.mainPlayer != null && GameMain.localPlanet != null && _scriptTypesInitted.Count == 0)
             {
-                _fastBuildScript = gameObject.AddComponent<FastBuildScript>();
-            }
-            if (_freeBuildScript == null && GameMain.isRunning && GameMain.mainPlayer != null && GameMain.localPlanet != null)
-            {
-                _freeBuildScript = gameObject.AddComponent<FreeBuildScript>();
-            }
-            if (_flyBuildScript == null && GameMain.isRunning && GameMain.mainPlayer != null && GameMain.localPlanet != null)
-            {
-                _flyBuildScript = gameObject.AddComponent<FlyBuildScript>();
-            }
-            if (_prebuildManager == null && GameMain.isRunning && GameMain.mainPlayer != null && GameMain.localPlanet != null)
-            {
-                _prebuildManager = gameObject.AddComponent<PrebuildManager>();
-            }
-            if (_longArmUi == null && GameMain.isRunning && GameMain.mainPlayer != null && GameMain.localPlanet != null)
-            {
-                _longArmUi = gameObject.AddComponent<LongArmUi>();
+                foreach (var scriptType in _scriptTypes)
+                {
+                    if (_scriptTypesInitted.Contains(scriptType))
+                        continue;
+                    var script = gameObject.AddComponent(scriptType);
+                    _scriptTypesInitted.Add(scriptType);
+                    _scripts.Add(script);
+                }
             }
         }
 
 
         private void OnDestroy()
         {
-            if (_freeBuildScript != null && _freeBuildScript.gameObject != null)
+            foreach (var script in _scripts)
             {
-                Destroy(_freeBuildScript.gameObject);
-                _freeBuildScript = null;
+                if (script != null && script.gameObject != null)
+                {
+                    Destroy(script.gameObject);
+                }
             }
-            
-            if (_fastBuildScript != null && _fastBuildScript.gameObject != null)
-            {
-                Destroy(_fastBuildScript.gameObject);
-                _fastBuildScript = null;
-            }
-
-            if (_flyBuildScript != null && _flyBuildScript.gameObject != null)
-            {
-                Destroy(_flyBuildScript.gameObject);
-                _flyBuildScript = null;
-            }
-
-            if (_prebuildManager != null && _prebuildManager.gameObject != null)
-            {
-                Destroy(_prebuildManager.gameObject);
-                _prebuildManager = null;
-            }
-            if (_longArmUi != null && _longArmUi.gameObject != null)
-            {
-                Destroy(_longArmUi.gameObject);
-                _longArmUi = null;
-            }
-
-
+            _scripts.Clear();
+            _scriptTypesInitted.Clear();
             if (_initted)
             {
                 GameMain.mainPlayer.mecha.buildArea = SavedBuildArea;
@@ -200,6 +175,3 @@ namespace LongArm
         }
     }
 }
-
-
-

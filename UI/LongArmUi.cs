@@ -52,6 +52,17 @@ namespace LongArm.UI
 
         private GUIStyle ToolTipStyle { get; set; }
 
+
+        private void Update()
+        {
+            if (KeyBindPatch.GetKeyBind("ShowLongArmWindow").keyValue)
+            {
+                if (_instance != null)
+                    _instance.Visible = !_instance.Visible;
+            }
+
+        }
+
         void OnClose()
         {
             Visible = false;
@@ -190,6 +201,8 @@ namespace LongArm.UI
                 GUILayout.EndVertical();
 
                 DrawPrebuildSection();
+
+                DrawActionSection();
             }
             if (GUI.tooltip != null)
             {
@@ -210,6 +223,21 @@ namespace LongArm.UI
                 rect.y += 20;
                 GUI.Box(rect, GUI.tooltip, ToolTipStyle);
             }
+        }
+
+        private void DrawActionSection()
+        {
+            GUILayout.BeginVertical("Box");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Power");
+            var pressed = GUILayout.Button(new GUIContent("Add Fuel", "Add fuel from inventory to power generators that are empty"));
+            if (pressed)
+            {
+                if (PowerNetworkFiller.Instance != null)
+                    PowerNetworkFiller.Instance.RequestExecution();
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
         }
 
         private void DrawPrebuildSection()
