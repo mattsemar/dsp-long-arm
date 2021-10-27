@@ -22,7 +22,7 @@ namespace LongArm.Scripts
 
         void Update()
         {
-            if (PluginConfig.buildMode != Mode.FlyToBuild)
+            if (PluginConfig.buildBuildHelperMode != BuildHelperMode.FlyToBuild)
                 return;
 
             if (_prebuildManager == null)
@@ -83,7 +83,6 @@ namespace LongArm.Scripts
             if (GameMain.mainPlayer.controller.movementStateInFrame != EMovementState.Fly && !_issuedFly)
             {
                 GameMain.mainPlayer.movementState = EMovementState.Fly;
-                // GameMain.mainPlayer.controller.movementStateInFrame = EMovementState.Fly;
                 GameMain.mainPlayer.controller.actionWalk.SwitchToFly();
                 _issuedFly = true;
                 _issuedFlyTime = DateTime.Now;

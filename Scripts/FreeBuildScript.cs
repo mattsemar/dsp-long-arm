@@ -13,7 +13,7 @@ namespace LongArm.Scripts
 
         void Update()
         {
-            if (PluginConfig.buildMode != Mode.FreeBuild)
+            if (PluginConfig.buildBuildHelperMode != BuildHelperMode.FreeBuild)
                 return;
 
             if (_prebuildManager == null)
@@ -59,6 +59,12 @@ namespace LongArm.Scripts
             {
                 if (GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck.BIT_MECHA))
                 {
+                    if (GameMain.data.abnormalityCheck.isGameNormal() && !PluginConfig.playerConfirmedAbnormalityTrigger)
+                    {
+                        Log.LogPopupWithFrequency("Not doing freebuild until confirmation received. Open UI and switch build mode off of FreeBuild and then back on");
+                        return;
+                    }
+
                     Log.LogPopupWithFrequency("Setting abnormality bit for save");
                     GameMain.abnormalityCheck.mechaCheck.abnormalityCheck.NotifyAbnormalityChecked(GameAbnormalityCheck.BIT_MECHA, true);
                 }

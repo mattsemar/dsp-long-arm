@@ -7,6 +7,7 @@ namespace LongArm.Patch
     [HarmonyPatch]
     public static class MechaPatch
     {
+        // Patch to revert the change we make to the Mecha build range before it's written to disk
         [HarmonyPrefix]
         [HarmonyPatch(typeof(Mecha), "Export")]
         public static bool ExportPrefix(ref Mecha __instance, BinaryWriter w, out float __state)

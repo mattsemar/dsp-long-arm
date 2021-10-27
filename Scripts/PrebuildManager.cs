@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using LongArm.UI;
+using LongArm.Util;
 using UnityEngine;
 
 namespace LongArm.Scripts
@@ -29,6 +31,40 @@ namespace LongArm.Scripts
             {
                 AddPrebuildIdsToWorkList(!HaveWork());
             }
+
+            if (Time.frameCount % 105 == 0)
+                Prune();
+        }
+
+        private void Prune()
+        {
+            if (_preBuildIds.Count == 0)
+                return;
+            if (_preBuildIdsPlanet != GameMain.localPlanet.id)
+            {
+                _preBuildIds.Clear();
+                _preBuildIdsPlanet = GameMain.localPlanet.id;
+                return;
+            }
+
+            var factory = GameMain.localPlanet?.factory;
+            if (factory == null)
+                return;
+            Log.Debug($"Pruning {_preBuildIds.Count} for planet {_preBuildIdsPlanet}. Should have {factory.prebuildCount}");
+            var idsToRemove = new List<int>();
+            foreach (var pbId in _preBuildIds)
+            {
+                if (factory.prebuildPool[pbId].id != pbId)
+                {
+                    idsToRemove.Add(pbId);
+                }
+            }
+
+            foreach (var pbId in idsToRemove)
+            {
+                _preBuildIds.Remove(pbId);
+            }
+            
         }
 
         private bool LastPlanetCheckStale()
@@ -126,7 +162,6 @@ namespace LongArm.Scripts
         {
             _preBuildIds.Sort((p1, p2) =>
             {
-                
                 var p1Distance = Vector3.Distance(position, GameMain.localPlanet.factory.prebuildPool[p1].pos);
                 var p2Distance = Vector3.Distance(position, GameMain.localPlanet.factory.prebuildPool[p2].pos);
 

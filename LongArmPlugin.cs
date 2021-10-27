@@ -16,7 +16,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "0.0.1";
+        private const string PluginVersion = "0.1.0";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -38,6 +38,7 @@ namespace LongArm
             _harmony.PatchAll(typeof(PrebuildManager));
             _harmony.PatchAll(typeof(LongArmUi));
             KeyBindPatch.Init();
+            PluginConfig.InitConfig(Config);
             Debug.Log($"LongArm Plugin Loaded");
         }
 
@@ -46,17 +47,21 @@ namespace LongArm
         {
             if (GameMain.mainPlayer == null || UIRoot.instance == null)
                 return;
+            if (GameMain.instance.isMenuDemo)
+                return;
             if (!GameMain.isRunning)
                 return;
             if (!_initted)
             {
                 SavedBuildArea = GameMain.mainPlayer.mecha.buildArea;
-                if (PluginConfig.buildMode == Mode.ExtendedRange)
+                if (PluginConfig.overrideBuildRange.Value)
                 {
                     Enable();
                 }
-                PluginConfig.InitConfig(Config);
-
+                else
+                {
+                    Disable();
+                }
                 _initted = true;
             }
             InitScripts();
@@ -71,8 +76,6 @@ namespace LongArm
         public void Disable()
         {
             GameMain.mainPlayer.mecha.buildArea = SavedBuildArea;
-            Configs.freeMode.mechaBuildArea = SavedBuildArea;
-            PluginConfig.buildMode = Mode.Disabled;
         }
 
         private void InitScripts()
@@ -150,8 +153,15 @@ namespace LongArm
             }
 
             GameMain.mainPlayer.mecha.buildArea = instance.SavedBuildArea;
-            Configs.freeMode.mechaBuildArea = instance.SavedBuildArea;
-            PluginConfig.buildMode = Mode.Disabled;
+            PluginConfig.buildBuildHelperMode = BuildHelperMode.None;
+        }
+
+        [HarmonyPrefix, HarmonyPatch(typeof(GameMain), "Start")]
+        public static void OnGameStart()
+        {
+            if (GameMain.instance.isMenuDemo)
+                return;
+            PluginConfig.buildBuildHelperMode = BuildHelperMode.None;
         }
         
         [HarmonyPrefix, HarmonyPatch(typeof(PlayerAction_Inspect), "GetObjectSelectDistance")]
@@ -180,7 +190,6 @@ namespace LongArm
 
         public void Enable()
         {
-            PluginConfig.buildMode = Mode.ExtendedRange;
             var range = 600;
             if (GameMain.localPlanet != null && GameMain.localPlanet.realRadius > 201)
             {
@@ -188,9 +197,9 @@ namespace LongArm
             }
 
             GameMain.mainPlayer.mecha.buildArea = range;
-            Configs.freeMode.mechaBuildArea = range;
         }
     }
 }
+
 
 

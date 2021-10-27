@@ -9,11 +9,8 @@ using UnityEngine;
 
 namespace LongArm.UI
 {
-    public enum Mode
+    public enum BuildHelperMode
     {
-        [Description("Extend construction bot build range (default)")]
-        ExtendedRange,
-
         [Description("Fly mecha to build locations")]
         FlyToBuild,
 
@@ -22,9 +19,9 @@ namespace LongArm.UI
 
         [Description("Build automatically, ignoring inventory contents (disables achievements)")]
         FreeBuild,
-
-        [Description("Disable plugin and set build range back to normal")]
-        Disabled,
+        
+        [Description("Leave construction bots alone to do their work")]
+        None,
     }
 
     public class LongArmUi : MonoBehaviour
@@ -47,11 +44,10 @@ namespace LongArm.UI
         private Color _savedContentColor;
         private GUISkin _mySkin;
         private int _chosenPlanet = -1;
-        private Mode _mode = Mode.ExtendedRange;
+        private BuildHelperMode _buildHelperMode = BuildHelperMode.None;
         private GUIStyle _textStyle;
         private readonly int _defaultFontSize = ScaleToDefault(12);
         private static LongArmUi _instance;
-        private bool _gotConfirmationOfAbnormality;
         private bool _popupOpened;
 
         private GUIStyle ToolTipStyle { get; set; }
@@ -93,7 +89,7 @@ namespace LongArm.UI
 
         void SaveCurrentGuiOptions()
         {
-            _mode = PluginConfig.buildMode;
+            _buildHelperMode = PluginConfig.buildBuildHelperMode;
             _savedBackgroundColor = GUI.backgroundColor;
             _savedContentColor = GUI.contentColor;
             _savedColor = GUI.color;
@@ -188,6 +184,11 @@ namespace LongArm.UI
                 GUILayout.BeginVertical("Box");
                 DrawModeSelector();
                 GUILayout.EndVertical();
+                GUILayout.BeginVertical("Box");
+                DrawOverrideInspectRange();
+                DrawOverrideBuildRange();
+                GUILayout.EndVertical();
+
                 DrawPrebuildSection();
             }
             if (GUI.tooltip != null)
@@ -221,81 +222,80 @@ namespace LongArm.UI
                 ? new GUIContent(prebuildManager.RemainingCount().ToString(), "Build previews remaining to be built")
                 : new GUIContent("Unknown", "Build previews remaining to be built"));
             GUILayout.EndHorizontal();
-
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Percent complete");
-            var percentDone = "0%";
-            if (prebuildManager != null)
-            {
-                percentDone = prebuildManager.GetPercentDone();
-            }
-
-            GUILayout.Label(new GUIContent(percentDone, "Percent of seen preview builds that are now built"));
-            GUILayout.EndHorizontal();
-
             GUILayout.BeginHorizontal();
             GUILayout.Label("Build range");
             GUILayout.Label(new GUIContent(GameMain.mainPlayer.mecha.buildArea.ToString(CultureInfo.CurrentCulture), "Current build range of mecha"));
             GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
+        }
 
+        private void DrawOverrideInspectRange()
+        {
             GUILayout.BeginHorizontal();
-            var result = GUILayout.Toggle(PluginConfig.overrideInspectionRange.Value, new GUIContent("Increase inspect range", "Allow opening assemblers/storage windows from map view"));
+            var result = GUILayout.Toggle(PluginConfig.overrideInspectionRange.Value,
+                new GUIContent("Increase inspect range", "Allow opening assemblers/storage windows from map view"));
             if (result != PluginConfig.overrideInspectionRange.Value)
             {
                 PluginConfig.overrideInspectionRange.Value = result;
             }
 
             GUILayout.EndHorizontal();
+        }
+        private void DrawOverrideBuildRange()
+        {
+            
+            GUILayout.BeginHorizontal();
+            var result = GUILayout.Toggle(PluginConfig.overrideBuildRange.Value,
+                new GUIContent("Increase bot build range to entire planet", "Allow construction bots to build in the entire planet"));
+            if (result != PluginConfig.overrideBuildRange.Value)
+            {
+                PluginConfig.overrideBuildRange.Value = result;
+                if (result)
+                    LongArmPlugin.instance.Enable();
+                else
+                    LongArmPlugin.instance.Disable();
 
-            GUILayout.EndVertical();
+            }
+
+            GUILayout.EndHorizontal();
         }
 
         private void DrawModeSelector()
         {
-            var names = Enum.GetNames(typeof(Mode));
-            var selectedName = Enum.GetName(typeof(Mode), _mode);
+            var names = Enum.GetNames(typeof(BuildHelperMode));
+            var selectedName = Enum.GetName(typeof(BuildHelperMode), _buildHelperMode);
             var guiContents = names.Select(n => GetModeAsGuiContent(n, "", selectedName == n));
-            GUILayout.Label("Mode");
+            GUILayout.Label("Build Helper Mode");
             GUILayout.BeginVertical("Box");
             var curIndex = names.ToList().IndexOf(selectedName);
-            var index = GUILayout.SelectionGrid(curIndex, guiContents.ToArray(), 1);
+            var index = GUILayout.SelectionGrid(curIndex, guiContents.ToArray(), 2);
 
             if (index != curIndex)
             {
-                if (Enum.TryParse(names[index], out Mode newMode))
+                if (Enum.TryParse(names[index], out BuildHelperMode newMode))
                 {
                     switch (newMode)
                     {
-                        case Mode.Disabled:
-                            LongArmPlugin.instance.Disable();
-                            _mode = newMode;
-
+                        case BuildHelperMode.None:
+                            _buildHelperMode = newMode;
+                            PluginConfig.buildBuildHelperMode = newMode;
                             break;
-                        case Mode.ExtendedRange:
-                            LongArmPlugin.instance.Enable();
-                            PluginConfig.buildMode = Mode.ExtendedRange;
-                            _mode = newMode;
+                        case BuildHelperMode.FlyToBuild:
+                            PluginConfig.buildBuildHelperMode = newMode;
+                            _buildHelperMode = newMode;
                             break;
-                        case Mode.FlyToBuild:
-                            LongArmPlugin.instance.Disable();
-                            PluginConfig.buildMode = Mode.FlyToBuild;
-                            _mode = newMode;
+                        case BuildHelperMode.FastBuild:
+                            PluginConfig.buildBuildHelperMode = newMode;
+                            _buildHelperMode = newMode;
                             break;
-                        case Mode.FastBuild:
-                            LongArmPlugin.instance.Disable();
-                            PluginConfig.buildMode = Mode.FastBuild;
-                            _mode = newMode;
-                            break;
-                        case Mode.FreeBuild:
+                        case BuildHelperMode.FreeBuild:
                             if (AbnormalityConfirmed())
                             {
-                                PluginConfig.buildMode = newMode;
-                                _mode = newMode;
+                                PluginConfig.buildBuildHelperMode = newMode;
+                                _buildHelperMode = newMode;
                             }
                             else
                                 ConfirmAbnormality();
-
                             break;
                     }
                 }
@@ -311,7 +311,7 @@ namespace LongArm.UI
             if (!GameMain.data.abnormalityCheck.isGameNormal())
                 return true;
 
-            return !GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck.BIT_MECHA) || _gotConfirmationOfAbnormality;
+            return !GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck.BIT_MECHA) || PluginConfig.playerConfirmedAbnormalityTrigger;
         }
 
 
@@ -328,7 +328,7 @@ namespace LongArm.UI
 
         private static GUIContent GetModeAsGuiContent(string sourceValue, string parentDescription, bool currentlySelected)
         {
-            var enumMember = typeof(Mode).GetMember(sourceValue).FirstOrDefault();
+            var enumMember = typeof(BuildHelperMode).GetMember(sourceValue).FirstOrDefault();
             var attr = enumMember?.GetCustomAttributes(typeof(DescriptionAttribute), false).Cast<DescriptionAttribute>().FirstOrDefault();
             var currentlySelectedIndicator = currentlySelected ? "<b>(selected)</b> " : "";
             var sval = attr?.Description ?? sourceValue;
@@ -360,16 +360,16 @@ namespace LongArm.UI
 
         private void ConfirmAbnormality()
         {
-            if (!_gotConfirmationOfAbnormality && !_popupOpened)
+            if (!PluginConfig.playerConfirmedAbnormalityTrigger && !_popupOpened)
             {
                 _popupOpened = true;
                 UIMessageBox.Show("Build for free", "Please confirm that you would like to build items for free (disabling achievements)".Translate(),
                     "Ok", "Cancel", 0, delegate
                     {
-                        _gotConfirmationOfAbnormality = true;
-                        PluginConfig.buildMode = Mode.FreeBuild;
+                        PluginConfig.playerConfirmedAbnormalityTrigger = true;
+                        PluginConfig.buildBuildHelperMode = BuildHelperMode.FreeBuild;
                         _popupOpened = false;
-                        _mode = Mode.FreeBuild;
+                        _buildHelperMode = BuildHelperMode.FreeBuild;
                     }, delegate
                     {
                         Log.LogAndPopupMessage($"Cancelled");

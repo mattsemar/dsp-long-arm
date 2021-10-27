@@ -13,7 +13,7 @@ namespace LongArm.Scripts
 
         void Update()
         {
-            if (PluginConfig.buildMode != Mode.FastBuild)
+            if (PluginConfig.buildBuildHelperMode != BuildHelperMode.FastBuild)
                 return;
 
             if (_prebuildManager == null)
