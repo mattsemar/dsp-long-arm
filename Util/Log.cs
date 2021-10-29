@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using BepInEx.Logging;
+using UnityEngine;
 
 namespace LongArm.Util
 {
@@ -25,7 +26,7 @@ namespace LongArm.Util
 
         public static void LogAndPopupMessage(string message)
         {
-            UIRealtimeTip.Popup(message);
+            UIRealtimeTip.Popup(message, new Vector2(Screen.currentResolution.width / 2, Screen.currentResolution.height / 2));
             logger.LogWarning($"Popped up message {message}");
         }
 

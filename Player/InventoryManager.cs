@@ -44,29 +44,11 @@ namespace LongArm.Player
             return cnt == count;
         }
 
-        public bool HasItemInInventory(int itemId)
+        public int TakeItems(int itemId, int count)
         {
-            return _player?.package.GetItemCount(itemId) > 0;
-        }
-
-        public static bool DeleteFromInventory(int itemId)
-        {
-            var inventoryManager = GetInstance();
-            if (inventoryManager?._player == null)
-            {
-                Log.Warn("Inventory manager instance is null (or _player) can't delete item");
-                return false;
-            }
-
-            return inventoryManager.DeleteItemFromInventory(itemId);
-        }
-
-        private bool DeleteItemFromInventory(int itemId)
-        {
-            int iid = itemId;
-            int cnt = 1;
-            _player.package.TakeTailItems(ref iid, ref cnt);
-            return cnt == 1;
+            int cnt = count;
+            _player.package.TakeTailItems(ref itemId, ref cnt);
+            return cnt;
         }
 
         public static int GetInventoryCount(int itemId)

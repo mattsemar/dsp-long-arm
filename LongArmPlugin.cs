@@ -18,7 +18,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "0.2.0";
+        private const string PluginVersion = "1.0.0";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -32,8 +32,10 @@ namespace LongArm
             typeof(FastBuildScript),
             typeof(PrebuildManager),
             typeof(FlyBuildScript),
-            typeof(PowerNetworkFiller),
-            typeof(LongArmUi)
+            typeof(FactoryActionExecutor),
+            typeof(LongArmUi),
+            typeof(BuildPreviewSummary),
+            typeof(TourFactoryScript)
         };
 
         private void Awake()
@@ -175,3 +177,4 @@ namespace LongArm
         }
     }
 }
+

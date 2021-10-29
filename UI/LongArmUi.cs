@@ -6,6 +6,7 @@ using HarmonyLib;
 using LongArm.Scripts;
 using LongArm.Util;
 using UnityEngine;
+using Action = System.Action;
 
 namespace LongArm.UI
 {
@@ -19,14 +20,28 @@ namespace LongArm.UI
 
         [Description("Build automatically, ignoring inventory contents (disables achievements)")]
         FreeBuild,
-        
+
         [Description("Leave construction bots alone to do their work")]
         None,
     }
 
+    public enum FactoryTourMode
+    {
+        [Description("Visit mining veins and oil seeps")]
+        Veins,
+
+        [Description("Visit assemblers, fractionators, colliders, chemical planets")]
+        Assemblers,
+
+        [Description("Visit logistics stations")]
+        Stations,
+
+        [Description("Disabled")] None,
+    }
+
     public class LongArmUi : MonoBehaviour
     {
-        private static readonly Resolution DefaultRes = new Resolution { width = 1920, height = 1080 };
+        protected static readonly Resolution DefaultRes = new Resolution { width = 1920, height = 1080 };
         public bool Visible { get; set; }
         private bool _requestHide;
         public Rect windowRect = new Rect(ScaleToDefault(300), ScaleToDefault(150, false), ScaleToDefault(250), ScaleToDefault(400, false));
@@ -47,20 +62,23 @@ namespace LongArm.UI
         private BuildHelperMode _buildHelperMode = BuildHelperMode.None;
         private GUIStyle _textStyle;
         private readonly int _defaultFontSize = ScaleToDefault(12);
-        private static LongArmUi _instance;
+        public static LongArmUi instance;
         private bool _popupOpened;
+        public static BuildPreviewSummary buildPreviewSummary;
 
         private GUIStyle ToolTipStyle { get; set; }
 
 
         private void Update()
         {
+            if (instance == null)
+                instance = this;
+
             if (KeyBindPatch.GetKeyBind("ShowLongArmWindow").keyValue)
             {
-                if (_instance != null)
-                    _instance.Visible = !_instance.Visible;
+                if (instance != null)
+                    instance.Visible = !instance.Visible;
             }
-
         }
 
         void OnClose()
@@ -72,8 +90,6 @@ namespace LongArm.UI
 
         void OnGUI()
         {
-            if (_instance == null)
-                _instance = this;
             if (!Visible)
                 return;
             if (Input.GetKeyDown(KeyCode.Escape) || _requestHide)
@@ -85,8 +101,6 @@ namespace LongArm.UI
             Init();
 
             windowRect = GUILayout.Window(1297895112, windowRect, WindowFnWrapper, "Long Arm");
-
-
             EatInputInRect(windowRect);
         }
 
@@ -193,16 +207,18 @@ namespace LongArm.UI
 
             {
                 GUILayout.BeginVertical("Box");
-                DrawModeSelector();
-                GUILayout.EndVertical();
-                GUILayout.BeginVertical("Box");
-                DrawOverrideInspectRange();
                 DrawOverrideBuildRange();
+                DrawOverrideInspectRange();
                 GUILayout.EndVertical();
-
                 DrawPrebuildSection();
 
+                GUILayout.BeginVertical("Box");
+                DrawModeSelector();
+                GUILayout.EndVertical();
+
                 DrawActionSection();
+
+                // DrawFactoryTourSection();
             }
             if (GUI.tooltip != null)
             {
@@ -225,18 +241,98 @@ namespace LongArm.UI
             }
         }
 
+        public static void DrawCenteredLabel(string text, params GUILayoutOption[] options)
+        {
+            GUILayout.BeginHorizontal(options);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(text);
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+        }
+
         private void DrawActionSection()
         {
             GUILayout.BeginVertical("Box");
+            DrawCenteredLabel("Actions");
+            AddAction("Power", "Add Fuel", "Add fuel from inventory to power generators that are empty", () =>
+            {
+                if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.RequestAddFuel();
+            });
+
+            AddAction("Stations", "Add Bots", "Add drones/vessels from inventory to stations (only adds if none of type are found)", () =>
+            {
+                if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.RequestAddBots();
+            });
+
+            var btnLabel = "Show Preview State";
+            if (buildPreviewSummary != null && buildPreviewSummary.Visible)
+            {
+                btnLabel = "Hide Preview State";
+            }
+
+            AddAction("Build Preview", btnLabel, "Summary of remaining build previews to be built", () =>
+            {
+                PrebuildManager.Instance.GetSummary(true);
+                buildPreviewSummary.Visible = !buildPreviewSummary.Visible;
+            });
+            GUILayout.EndVertical();
+        }
+
+        private void AddAction(string actionCategory, string buttonText, string buttonTip, Action buttonAction)
+        {
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Power");
-            var pressed = GUILayout.Button(new GUIContent("Add Fuel", "Add fuel from inventory to power generators that are empty"));
+            GUILayout.Label(actionCategory);
+            var pressed = GUILayout.Button(new GUIContent(buttonText, buttonTip));
             if (pressed)
             {
-                if (PowerNetworkFiller.Instance != null)
-                    PowerNetworkFiller.Instance.RequestExecution();
+                buttonAction();
             }
+
             GUILayout.EndHorizontal();
+        }
+
+        private void DrawFactoryTourSection()
+        {
+            GUILayout.BeginVertical("Box");
+            var names = Enum.GetNames(typeof(FactoryTourMode));
+            var selectedName = Enum.GetName(typeof(FactoryTourMode), PluginConfig.TourMode);
+            var guiContents = names.Select(n => GetModeAsGuiContent(n, "", selectedName == n));
+            GUILayout.Label("Factory Tour Mode");
+            var curIndex = names.ToList().IndexOf(selectedName);
+            var index = GUILayout.SelectionGrid(curIndex, guiContents.ToArray(), 2);
+
+            if (index != curIndex)
+            {
+                if (Enum.TryParse(names[index], out FactoryTourMode newMode))
+                {
+                    PluginConfig.TourMode = newMode;
+                }
+            }
+
+            GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
+            var prevButton = GUILayout.Button(new GUIContent("Previous", "Go back to previous location in tour"));
+            if (prevButton)
+            {
+                TourFactoryScript.RequestPrevious();
+            }
+
+            var nextButton = GUILayout.Button(new GUIContent("Next", "Go back to next location in tour"));
+            if (nextButton)
+            {
+                TourFactoryScript.RequestNext();
+            }
+
+            var autoButton = GUILayout.Button(new GUIContent("Auto", "Automatically advance to next location for tour"));
+            if (autoButton)
+            {
+                TourFactoryScript.RequestAuto();
+            }
+
+            GUILayout.EndHorizontal();
+            GUILayout.Label($"Current location index: {TourFactoryScript.GetCurrentIndex()} / total points {TourFactoryScript.GetTotalLocations()}");
+            GUILayout.EndVertical();
+
             GUILayout.EndVertical();
         }
 
@@ -261,7 +357,7 @@ namespace LongArm.UI
         {
             GUILayout.BeginHorizontal();
             var result = GUILayout.Toggle(PluginConfig.overrideInspectionRange.Value,
-                new GUIContent("Increase inspect range", "Allow opening assemblers/storage windows from map view"));
+                new GUIContent("Increase inspect range", "Allow opening assemblers/storage windows from map view and from far away in the normal view"));
             if (result != PluginConfig.overrideInspectionRange.Value)
             {
                 PluginConfig.overrideInspectionRange.Value = result;
@@ -269,12 +365,12 @@ namespace LongArm.UI
 
             GUILayout.EndHorizontal();
         }
+
         private void DrawOverrideBuildRange()
         {
-            
             GUILayout.BeginHorizontal();
             var result = GUILayout.Toggle(PluginConfig.overrideBuildRange.Value,
-                new GUIContent("Increase bot build range to entire planet", "Allow construction bots to build in the entire planet"));
+                new GUIContent("Increase build range", "Increases build range to include the entire planet"));
             if (result != PluginConfig.overrideBuildRange.Value)
             {
                 PluginConfig.overrideBuildRange.Value = result;
@@ -282,7 +378,6 @@ namespace LongArm.UI
                     LongArmPlugin.instance.Enable();
                 else
                     LongArmPlugin.instance.Disable();
-
             }
 
             GUILayout.EndHorizontal();
@@ -324,6 +419,7 @@ namespace LongArm.UI
                             }
                             else
                                 ConfirmAbnormality();
+
                             break;
                     }
                 }
@@ -369,11 +465,11 @@ namespace LongArm.UI
         [HarmonyPatch(typeof(UIGame), "On_E_Switch")]
         public static void UIGame_On_E_Switch_Postfix()
         {
-            if (_instance == null)
+            if (instance == null)
                 return;
-            if (_instance.Visible)
+            if (instance.Visible)
             {
-                _instance._requestHide = true;
+                instance._requestHide = true;
             }
         }
 
@@ -406,7 +502,7 @@ namespace LongArm.UI
             }
         }
 
-        private static int ScaleToDefault(int input, bool horizontal = true)
+        public static int ScaleToDefault(int input, bool horizontal = true)
         {
             if (Screen.currentResolution.Equals(DefaultRes))
             {

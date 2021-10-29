@@ -20,7 +20,6 @@ namespace LongArm.Patch
 
             if (LongArmPlugin.instance == null || LongArmPlugin.instance.SavedBuildArea < 0.01f)
             {
-                Log.Debug($"Unable to get default build area from plugin instance. instance == null {LongArmPlugin.instance == null}");
                 __state = 0f;
                 return true;
             }
@@ -40,7 +39,6 @@ namespace LongArm.Patch
                 return;
             if (LongArmPlugin.instance == null || LongArmPlugin.instance.SavedBuildArea < 0.01f)
             {
-                Log.Debug($"Unable to get default build area from plugin instance. instance == null {LongArmPlugin.instance == null}");
                 return;
             }
 
