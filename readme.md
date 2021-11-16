@@ -34,6 +34,13 @@ Click the `Install with Mod Manager` link above.
 
 ## Changelog
 
+#### v1.1.0
+Fixed exception thrown when preview window layout changes
+Added factory tour mode to help locate things on planet factory faster
+
+#### v1.0.1
+Rebuild to sync with latest version of game
+
 #### v1.0.0
 Added Build Status window to show blueprinted items vs. inventory counts
 Added "Add Bots" button for filling stations all stations on planet with drones/vessels (configurable)

@@ -10,10 +10,13 @@ namespace LongArm.FactoryLocation
 {
     public class EntityLocation
     {
-        public AssemblerComponent assembler;
-        public VeinData vein;
-        public StationComponent station;
         public Vector3 position;
+        public AssemblerComponent assembler;
+        public PowerGeneratorComponent generator;
+        public LabComponent lab;
+        public StationComponent station;
+        public StorageComponent storage;
+        public VeinData vein;
 
         public bool IsUnpowered()
         {
@@ -48,7 +51,7 @@ namespace LongArm.FactoryLocation
     public class FactoryLocationProvider
     {
         private static FactoryLocationProvider _instance;
-        public static FactoryLocationProvider instance => GetInstance();
+        public static FactoryLocationProvider Instance => GetInstance();
 
         private PlanetFactory _factory;
         private FactoryTourMode _currentMode = FactoryTourMode.None;
@@ -56,6 +59,7 @@ namespace LongArm.FactoryLocation
         private bool _dirty;
         private DateTime _lastSync;
         private int _currentIndex;
+        private IFactoryEntityFilter _currentFilter = MatchAllFilter.DEFAULT;
 
         private FactoryLocationProvider(PlanetFactory factory)
         {
@@ -65,15 +69,16 @@ namespace LongArm.FactoryLocation
 
         private static FactoryLocationProvider GetInstance()
         {
-            if (_instance == null && GameMain.localPlanet == null)
+            var localPlanet = GameMain.localPlanet;
+            if (_instance == null && localPlanet == null)
                 return null;
-            if (GameMain.localPlanet.factory == null)
+            if (localPlanet.factory == null)
                 return null;
-            var result = _instance ?? (_instance = new FactoryLocationProvider(GameMain.localPlanet.factory));
-            if (result._factory == null || result._factory != GameMain.localPlanet?.factory)
+            var result = _instance ?? (_instance = new FactoryLocationProvider(localPlanet.factory));
+            if (result._factory == null || result._factory != localPlanet?.factory)
             {
                 Log.Debug("Switching player instance for InvMgr");
-                result._factory = GameMain.localPlanet.factory;
+                result._factory = localPlanet.factory;
             }
 
             return result;
@@ -89,13 +94,24 @@ namespace LongArm.FactoryLocation
             }
         }
 
-        public void Sync()
+        public void Sync(bool force= false)
         {
-            var needUpdate = _dirty || (DateTime.Now - _lastSync).TotalSeconds > 10;
+            var needUpdate = force || _dirty || (DateTime.Now - _lastSync).TotalSeconds > 10;
             if (!needUpdate)
                 return;
+            if (_factory != GameMain.localPlanet?.factory)
+            {
+                Log.Warn($"factory instance out of sync");
+                if (GameMain.localPlanet?.factory != null)
+                    _factory = GameMain.localPlanet.factory;
+                else
+                {
+                    _factory = null;
+                    return;
+                }
+            }
 
-            if (_currentMode != FactoryTourMode.None)
+            if (_currentMode != FactoryTourMode.None && _currentMode != FactoryTourMode.Stopped)
                 switch (_currentMode)
                 {
                     case FactoryTourMode.Assemblers:
@@ -107,12 +123,55 @@ namespace LongArm.FactoryLocation
                     case FactoryTourMode.Stations:
                         UpdateStationLocations();
                         break;
+                    case FactoryTourMode.Storage:
+                        UpdateStorageLocations();
+                        break;
+                    case FactoryTourMode.Generator:
+                        UpdateGeneratorLocations();
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
 
             _dirty = false;
             _lastSync = DateTime.Now;
+        }
+
+        private void UpdateGeneratorLocations()
+        {
+            ApplyNewLocations(GetGeneratorLocations());
+        }
+
+        private List<EntityLocation> GetGeneratorLocations()
+        {
+            // var filteredItemId = _itemFilter == null || _itemFilter.ID == 0 ? 0 : _itemFilter.ID;
+            var newLocations = new List<EntityLocation>();
+            for (int i = 1; i < _factory.entityCursor; i++)
+            {
+                var entity = _factory.entityPool[i];
+                if (entity.id != i)
+                    continue;
+                if (entity.powerGenId > 0)
+                {
+                    var generator = _factory.powerSystem.genPool[entity.powerGenId];
+                    var isFuelConsumer = generator.fuelHeat > 0 && generator.fuelId > 0 && generator.productId == 0;
+                    if (!isFuelConsumer)
+                        continue;
+
+                    newLocations.Add(new EntityLocation
+                    {
+                        generator = generator,
+                        position = _factory.entityPool[i].pos,
+                    });
+                }
+            }
+
+            return newLocations.FindAll(el => _currentFilter.Matches(el));
+        }
+
+        private void UpdateStorageLocations()
+        {
+            ApplyNewLocations(GetStorageLocations());
         }
 
         private void UpdateStationLocations()
@@ -128,15 +187,62 @@ namespace LongArm.FactoryLocation
                 var entity = _factory.transport.stationPool[i];
                 if (entity == null || entity.id != i)
                     continue;
+                // if (_itemFilter != null)
+                // {
+                //     var filterMatched = false;
+                //     foreach (var store in entity.storage)
+                //     {
+                //         if (store.itemId < 1)
+                //         {
+                //             continue;
+                //         }
+                //
+                //         if (store.itemId == _itemFilter.ID)
+                //         {
+                //             filterMatched = true;
+                //             break;
+                //         }
+                //     }
+                //
+                //     if (!filterMatched)
+                //         continue;
+                // }
 
+                var pos = _factory.entityPool[entity.entityId].pos;
                 newLocations.Add(new EntityLocation
                 {
                     station = entity,
-                    position = entity.shipDockPos
+                    // position = entity.shipDockPos
+                    position = pos
                 });
             }
 
-            return newLocations;
+            return newLocations.FindAll(el => _currentFilter.Matches(el));
+        }
+
+        private List<EntityLocation> GetStorageLocations()
+        {
+            var newLocations = new List<EntityLocation>();
+            for (int i = 1; i < _factory.factoryStorage.storageCursor; i++)
+            {
+                var entity = _factory.factoryStorage.storagePool[i];
+                if (entity == null || entity.id != i)
+                    continue;
+                // if (_itemFilter != null)
+                // {
+                //     var filterMatched = false;
+                //     if (entity.GetItemCount(_itemFilter.ID) < 1)
+                //         continue;
+                // }
+
+                newLocations.Add(new EntityLocation
+                {
+                    storage = entity,
+                    position = _factory.entityPool[entity.entityId].pos
+                });
+            }
+
+            return newLocations.FindAll(el => _currentFilter.Matches(el));
         }
 
         private void UpdateVeinLocations()
@@ -147,7 +253,16 @@ namespace LongArm.FactoryLocation
                 var entity = _factory.veinPool[i];
                 if (entity.id != i)
                     continue;
-
+                // if (_itemFilter != null)
+                // {
+                //     if (entity.productId != _itemFilter.ID)
+                //         continue;
+                // }
+                //
+                if (HasNearbyPoint(newLocations, entity.pos, 10))
+                    continue;
+                if (entity.minerCount > 0 && LDB.items.Select(entity.productId).Name.Contains("Crude"))
+                    continue;
                 newLocations.Add(new EntityLocation
                 {
                     vein = entity,
@@ -156,28 +271,53 @@ namespace LongArm.FactoryLocation
                 });
             }
 
-            ApplyNewLocations(newLocations);
+            ApplyNewLocations(newLocations.FindAll(el => _currentFilter.Matches(el)));
+        }
+
+        private bool HasNearbyPoint(List<EntityLocation> locations, Vector3 position, int maxDistance)
+        {
+            return locations.Exists(l => Vector3.Distance(l.position, position) < maxDistance);
         }
 
         private void UpdateAssemblerLocations()
         {
+            // var filteredItemId = _itemFilter == null || _itemFilter.ID == 0 ? 0 : _itemFilter.ID;
             var newLocations = new List<EntityLocation>();
             for (int i = 1; i < _factory.entityCursor; i++)
             {
                 var entity = _factory.entityPool[i];
                 if (entity.id != i)
                     continue;
+                if (HasNearbyPoint(newLocations, entity.pos, 10))
+                    continue;
                 if (entity.assemblerId > 0)
                 {
+                    var assembler = _factory.factorySystem.assemblerPool[entity.assemblerId];
                     newLocations.Add(new EntityLocation
                     {
-                        assembler = _factory.factorySystem.assemblerPool[entity.assemblerId],
-                        position = _factory.entityPool[i].pos
+                        assembler = assembler,
+                        position = entity.pos
+                    });
+                }
+
+                if (entity.labId > 0)
+                {
+                    var lab = _factory.factorySystem.labPool[entity.labId];
+                    if (!lab.matrixMode || lab.products == null)
+                    {
+                        Log.Debug($"got a null lab {lab.matrixMode} {lab.products}");
+                        continue;
+                    }
+
+                    newLocations.Add(new EntityLocation
+                    {
+                        lab = lab,
+                        position = _factory.entityPool[i].pos,
                     });
                 }
             }
 
-            ApplyNewLocations(newLocations);
+            ApplyNewLocations(newLocations.FindAll(el => _currentFilter.Matches(el)));
         }
 
         private void ApplyNewLocations(List<EntityLocation> newLocations)
@@ -190,10 +330,17 @@ namespace LongArm.FactoryLocation
             });
 
             var newIndex = _currentIndex;
+            if (newIndex < 0 || newIndex >= _locations.Count)
+            {
+                newIndex = (int)Maths.Clamp(newIndex, 0, _locations.Count - 1);
+            }
+
             if (_locations.Count > 0 && newLocations.Count > 0)
             {
-                var curEntityLocation = _locations[_currentIndex];
-                newIndex = newLocations.FindIndex(0, el => el.position == curEntityLocation.position);
+                var curEntityLocation = _locations[newIndex];
+                newIndex = newLocations.FindIndex(el => el.position == curEntityLocation.position);
+                if (newIndex < 0)
+                    newIndex = 0;
             }
 
             lock (_locations)
@@ -257,6 +404,79 @@ namespace LongArm.FactoryLocation
             }
 
             return GetStationLocations().Select(s => s.station).ToList();
+        }
+
+        public void SetItemFilter(ItemProto proto)
+        {
+            if (proto == null)
+            {
+                _currentFilter = MatchAllFilter.DEFAULT;
+            }
+            else
+            {
+                _currentFilter = new ItemFilter(proto.ID);
+            }
+
+            _dirty = true;
+            Sync();
+        }
+
+        public void ClearFilter()
+        {
+            _currentFilter = MatchAllFilter.DEFAULT;
+            _dirty = true;
+            Sync();
+        }
+
+        public void UseNeedItemFilter(bool toggle)
+        {
+            if (toggle)
+            {
+                if (_currentFilter is MatchAllFilter)
+                {
+                    _currentFilter = NeedItemFilter.DEFAULT;
+                }
+                else if (_currentFilter is ItemFilter)
+                {
+                    var newFilter = new CompoundEntityFilter();
+                    newFilter.AddFilter(_currentFilter);
+                    newFilter.AddFilter(NeedItemFilter.DEFAULT);
+                    _currentFilter = newFilter;
+                }
+                else if (_currentFilter is CompoundEntityFilter cfx)
+                {
+                    cfx.AddFilter(NeedItemFilter.DEFAULT);
+                }
+                else if (_currentFilter is NeedItemFilter) // this doesn't make sense
+                {
+                    // no-op?
+                    Log.Warn("Trying to set need item filter, but already have it");
+                }
+            }
+            else
+            {
+                if (_currentFilter is MatchAllFilter)
+                {
+                    // doesn't make sense, just warn
+                    Log.Warn("Trying to clear need item filter, but not set (MatchAll)");
+                }
+                else if (_currentFilter is ItemFilter)
+                {
+                    // doesn't make sense, just warn
+                    Log.Warn("Trying to clear need item filter, but not set (ItemFilter)");
+                }
+                else if (_currentFilter is CompoundEntityFilter cfx)
+                {
+                    cfx.RemoveFilter(NeedItemFilter.DEFAULT);
+                }
+                else if (_currentFilter is NeedItemFilter)
+                {
+                    _currentFilter = MatchAllFilter.DEFAULT;
+                }
+            }
+
+            _dirty = true;
+            Sync();
         }
     }
 }

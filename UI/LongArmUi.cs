@@ -36,7 +36,17 @@ namespace LongArm.UI
         [Description("Visit logistics stations")]
         Stations,
 
-        [Description("Disabled")] None,
+        [Description("Visit storage containers")]
+        Storage,
+        
+        [Description("Visit generators")]
+        Generator,
+        
+        [Description("Stop but keep window open")]
+        Stopped,
+
+        [Description("Close")] None,
+        
     }
 
     public class LongArmUi : MonoBehaviour
@@ -65,6 +75,7 @@ namespace LongArm.UI
         public static LongArmUi instance;
         private bool _popupOpened;
         public static BuildPreviewSummary buildPreviewSummary;
+        private ItemProto _tourModeItemFilter;
 
         private GUIStyle ToolTipStyle { get; set; }
 
@@ -77,7 +88,14 @@ namespace LongArm.UI
             if (KeyBindPatch.GetKeyBind("ShowLongArmWindow").keyValue)
             {
                 if (instance != null)
+                {
                     instance.Visible = !instance.Visible;
+                    Log.Debug($"Setting UI window visible=${instance.Visible}");
+                }
+            }
+            if (KeyBindPatch.GetKeyBind("ShowFactoryTour").keyValue)
+            {
+                TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible;
             }
         }
 
@@ -104,7 +122,7 @@ namespace LongArm.UI
             EatInputInRect(windowRect);
         }
 
-        void RestoreGuiSkinOptions()
+        public void RestoreGuiSkinOptions()
         {
             GUI.skin = _savedGUISkinObj;
             GUI.backgroundColor = _savedBackgroundColor;
@@ -112,7 +130,7 @@ namespace LongArm.UI
             GUI.color = _savedColor;
         }
 
-        void SaveCurrentGuiOptions()
+        public void SaveCurrentGuiOptions()
         {
             _buildHelperMode = PluginConfig.buildBuildHelperMode;
             _savedBackgroundColor = GUI.backgroundColor;
@@ -217,8 +235,6 @@ namespace LongArm.UI
                 GUILayout.EndVertical();
 
                 DrawActionSection();
-
-                // DrawFactoryTourSection();
             }
             if (GUI.tooltip != null)
             {
@@ -275,6 +291,7 @@ namespace LongArm.UI
                 PrebuildManager.Instance.GetSummary(true);
                 buildPreviewSummary.Visible = !buildPreviewSummary.Visible;
             });
+            AddAction("Factory Tour", "Show/Hide Tour", "Show tour window", () => { TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible; });
             GUILayout.EndVertical();
         }
 
@@ -291,50 +308,6 @@ namespace LongArm.UI
             GUILayout.EndHorizontal();
         }
 
-        private void DrawFactoryTourSection()
-        {
-            GUILayout.BeginVertical("Box");
-            var names = Enum.GetNames(typeof(FactoryTourMode));
-            var selectedName = Enum.GetName(typeof(FactoryTourMode), PluginConfig.TourMode);
-            var guiContents = names.Select(n => GetModeAsGuiContent(n, "", selectedName == n));
-            GUILayout.Label("Factory Tour Mode");
-            var curIndex = names.ToList().IndexOf(selectedName);
-            var index = GUILayout.SelectionGrid(curIndex, guiContents.ToArray(), 2);
-
-            if (index != curIndex)
-            {
-                if (Enum.TryParse(names[index], out FactoryTourMode newMode))
-                {
-                    PluginConfig.TourMode = newMode;
-                }
-            }
-
-            GUILayout.BeginVertical();
-            GUILayout.BeginHorizontal();
-            var prevButton = GUILayout.Button(new GUIContent("Previous", "Go back to previous location in tour"));
-            if (prevButton)
-            {
-                TourFactoryScript.RequestPrevious();
-            }
-
-            var nextButton = GUILayout.Button(new GUIContent("Next", "Go back to next location in tour"));
-            if (nextButton)
-            {
-                TourFactoryScript.RequestNext();
-            }
-
-            var autoButton = GUILayout.Button(new GUIContent("Auto", "Automatically advance to next location for tour"));
-            if (autoButton)
-            {
-                TourFactoryScript.RequestAuto();
-            }
-
-            GUILayout.EndHorizontal();
-            GUILayout.Label($"Current location index: {TourFactoryScript.GetCurrentIndex()} / total points {TourFactoryScript.GetTotalLocations()}");
-            GUILayout.EndVertical();
-
-            GUILayout.EndVertical();
-        }
 
         private void DrawPrebuildSection()
         {
@@ -435,7 +408,7 @@ namespace LongArm.UI
             if (!GameMain.data.abnormalityCheck.isGameNormal())
                 return true;
 
-            return !GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck.BIT_MECHA) || PluginConfig.playerConfirmedAbnormalityTrigger;
+            return !GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck_Obsolete.BIT_MECHA) || PluginConfig.playerConfirmedAbnormalityTrigger;
         }
 
 
@@ -450,7 +423,7 @@ namespace LongArm.UI
             Mathf.RoundToInt(windowRect.width / 2.5f);
         }
 
-        private static GUIContent GetModeAsGuiContent(string sourceValue, string parentDescription, bool currentlySelected)
+        public static GUIContent GetModeAsGuiContent(string sourceValue, string parentDescription, bool currentlySelected)
         {
             var enumMember = typeof(BuildHelperMode).GetMember(sourceValue).FirstOrDefault();
             var attr = enumMember?.GetCustomAttributes(typeof(DescriptionAttribute), false).Cast<DescriptionAttribute>().FirstOrDefault();
@@ -460,21 +433,20 @@ namespace LongArm.UI
             return new GUIContent(label, $"<b>{parentDescription}</b> {currentlySelectedIndicator} {sval}");
         }
 
-
         [HarmonyPostfix]
         [HarmonyPatch(typeof(UIGame), "On_E_Switch")]
         public static void UIGame_On_E_Switch_Postfix()
-        {
+        {   
             if (instance == null)
                 return;
-            if (instance.Visible)
+            if (instance.Visible && !UIRoot.instance.uiGame.inventory.gameObject.activeSelf && !UIRoot.instance.uiGame.replicator.gameObject.activeSelf)
             {
                 instance._requestHide = true;
             }
         }
 
         // copied from https://github.com/starfi5h/DSP_Mod/blob/d38b52eb895d43e6feee09e6bb537a5726d7d466/SphereEditorTools/UIWindow.cs#L221
-        private void EatInputInRect(Rect eatRect)
+        public static void EatInputInRect(Rect eatRect)
         {
             if (!(Input.GetMouseButton(0) || Input.GetMouseButtonDown(0))) //Eat only when left-click
                 return;

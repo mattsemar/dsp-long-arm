@@ -1,4 +1,5 @@
-﻿using LongArm.Scripts;
+﻿using LongArm.Model;
+using LongArm.Scripts;
 using LongArm.Util;
 using UnityEngine;
 using static LongArm.UI.LongArmUi;
@@ -25,21 +26,23 @@ namespace LongArm.UI
         private GUISkin _mySkin;
         private GUIStyle _textStyle;
         private readonly int _defaultFontSize = ScaleToDefault(12);
-        private static BuildPreviewSummary _instance;
+        public static BuildPreviewSummary instance;
         private bool _popupOpened;
-        private Vector2 scrollViewVector = Vector2.zero;
-        private int maxHeightSz;
-        private GUILayoutOption maxHeight;
+        private Vector2 _scrollViewVector = Vector2.zero;
+        private int _maxHeightSz;
+        private GUILayoutOption _maxHeight;
+        private PrebuildSummary _prebuildSummary;
 
 
         private GUIStyle ToolTipStyle { get; set; }
 
         private void Update()
         {
-            if (_instance == null)
-                _instance = this;
+            if (instance == null)
+                instance = this;
             if (buildPreviewSummary == null)
                 buildPreviewSummary = this;
+            _prebuildSummary = PrebuildManager.Instance.GetSummary();
         }
 
         void OnClose()
@@ -51,9 +54,10 @@ namespace LongArm.UI
 
         void OnGUI()
         {
-            if (_instance == null)
-                _instance = this;
-            if (!Visible)
+            if (instance == null)
+                instance = this;
+
+            if (!Visible || (_prebuildSummary.items.Count == 0 && PluginConfig.autoShowPreviewStatusWindow.Value))
                 return;
             if (_requestHide)
             {
@@ -72,21 +76,17 @@ namespace LongArm.UI
                 return;
             }
             
-            if (maxHeight == null)
+            if (_maxHeight == null)
             {
                 var imgHeight = ItemUtil.GetItemImageHeight();
-                maxHeightSz = imgHeight / 2;
-                maxHeight = GUILayout.MaxHeight(maxHeightSz);
+                _maxHeightSz = imgHeight / 2;
+                _maxHeight = GUILayout.MaxHeight(_maxHeightSz);
             }
 
             Init();
-            // GUILayout.BeginScrollView(new Vector2(0, Screen.height / 2), false, false);
-            // return GUILayout.BeginScrollView(scrollPosition, false, false, GUI.skin.horizontalScrollbar, GUI.skin.verticalScrollbar, GUI.skin.scrollView, options);
-            scrollViewVector = GUI.BeginScrollView(windowRect, scrollViewVector, new Rect(0, 0, 400, 400), false, false);
+            _scrollViewVector = GUI.BeginScrollView(windowRect, _scrollViewVector, new Rect(0, 0, 400, 400), false, false);
             WindowFnWrapper();
             GUI.EndScrollView();
-            // GUILayout.EndScrollView();
-            // windowRect = GUILayout.Window(1297895122, windowRect, WindowFnWrapper, "Build Preview Status");
         }
 
         void RestoreGuiSkinOptions()
@@ -224,22 +224,19 @@ namespace LongArm.UI
 
             var layoutOptions = GUILayout.Width(150);
             GUILayout.Label(new GUIContent("#"), layoutOptions);
-            // GUILayout.Label(new GUIContent("Item"), layoutOptions);
-            var headRect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
-            // GUILayout.Label(new GUIContent(item.itemImage.texture, item.itemName), layoutOptions);
+            var headRect = GUILayoutUtility.GetRect(_maxHeightSz, _maxHeightSz);
             GUI.Label(headRect, new GUIContent("Item"));
             GUILayout.Label(new GUIContent("Inventory", "Count in inventory"), layoutOptions);
             GUILayout.Label(new GUIContent("Previews", "Count of build previews for item"), layoutOptions);
             GUILayout.EndHorizontal();
 
 
-            var prebuildSummary = PrebuildManager.Instance.GetSummary();
-            for (var index = 0; index < prebuildSummary.items.Count; index++)
+            for (var index = 0; index < _prebuildSummary.items.Count; index++)
             {
-                var item = prebuildSummary.items[index];
-                GUILayout.BeginHorizontal(_textStyle, maxHeight);
+                var item = _prebuildSummary.items[index];
+                GUILayout.BeginHorizontal(_textStyle, _maxHeight);
                 GUILayout.Label(new GUIContent((index + 1).ToString()), layoutOptions);
-                var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
+                var rect = GUILayoutUtility.GetRect(_maxHeightSz, _maxHeightSz);
                 GUI.Label(rect, new GUIContent(item.itemImage.texture, item.itemName));
                 var invCountText = (item.inventoryCount < item.neededCount) ? $"<b>{item.inventoryCount}</b>" : item.inventoryCount.ToString();
                 GUILayout.Label(new GUIContent(invCountText, $"{item.itemName} count in inventory"), layoutOptions);
@@ -247,12 +244,12 @@ namespace LongArm.UI
                 GUILayout.EndHorizontal();
             }
 
-            GUILayout.BeginHorizontal(_textStyle, maxHeight);
+            GUILayout.BeginHorizontal(_textStyle, _maxHeight);
             GUILayout.Label(new GUIContent("<b>Total</b>"), layoutOptions);
-            var summaryRect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
+            var summaryRect = GUILayoutUtility.GetRect(_maxHeightSz, _maxHeightSz);
             GUI.Label(summaryRect, new GUIContent(" "));
-            GUILayout.Label(new GUIContent($"<b>{prebuildSummary.missingCount}</b>", "Total missing items (needed but not in inventory)"), layoutOptions);
-            GUILayout.Label(new GUIContent(  $"<b>{prebuildSummary.total}</b>", "Total build previews"), layoutOptions);
+            GUILayout.Label(new GUIContent($"<b>{_prebuildSummary.missingCount}</b>", "Total missing items (needed but not in inventory)"), layoutOptions);
+            GUILayout.Label(new GUIContent(  $"<b>{_prebuildSummary.total}</b>", "Total build previews"), layoutOptions);
             GUILayout.EndHorizontal();
            
         }

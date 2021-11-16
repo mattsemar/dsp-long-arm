@@ -14,7 +14,7 @@ namespace LongArm.Model
 
     public class PrebuildSummary
     {
-        public List<PrebuildItemStatus> items = new List<PrebuildItemStatus>();
+        public readonly List<PrebuildItemStatus> items = new List<PrebuildItemStatus>();
         public long updatedAtTicks = DateTime.Now.AddDays(-1).Ticks;
         public int total;
         public int missingCount;

@@ -86,6 +86,15 @@ namespace LongArm.Util
                     canOverride = true
                 });
             
+            RegisterKeyBind<PressKeyBind>(new BuiltinKey
+                {
+                    id = 109,
+                    key = new CombineKey((int) KeyCode.W, CombineKey.SHIFT_COMB, ECombineKeyAction.OnceClick, false),
+                    conflictGroup = 2052,
+                    name = "ShowFactoryTour",
+                    canOverride = true
+                });
+            
         }
 
         [HarmonyPatch(typeof(UIOptionWindow), "_OnCreate")]

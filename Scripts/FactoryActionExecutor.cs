@@ -64,7 +64,7 @@ namespace LongArm.Scripts
 
         private void AddBots()
         {
-            var stationComponents = FactoryLocationProvider.instance.GetStations();
+            var stationComponents = FactoryLocationProvider.Instance.GetStations();
             var inventoryManager = InventoryManager.instance;
             if (inventoryManager == null)
                 return;
@@ -112,6 +112,7 @@ namespace LongArm.Scripts
                 allowedMaxDrones = Mathf.CeilToInt(allowedMaxDrones * (PluginConfig.maxDronesToAdd.Value / 100f));
                 Log.Debug($"Allowed max drones lowered to {allowedMaxDrones}");
             }
+            Log.Debug($"need to add {allowedMaxDrones} - {currentDroneCnt}");
 
             int dronesToAdd = allowedMaxDrones - currentDroneCnt;
             if (dronesToAdd <= 0)
@@ -191,6 +192,9 @@ namespace LongArm.Scripts
                 {
                     continue;
                 }
+                if (generator.photovoltaic || generator.wind)
+                    continue;
+
 
                 totalGenCount++;
                 if (generator.curFuelId > 0 && generator.fuelId > 0)
@@ -220,6 +224,15 @@ namespace LongArm.Scripts
                             actuallyFilledCount++;
                             break;
                         }
+                    }
+                }
+
+                if (!filled && generator.catalystId > 0)
+                {
+                    if (invMgr.RemoveItemImmediately(generator.catalystId, 1))
+                    {
+                        factory.powerSystem.genPool[generator.id].catalystPoint += 3600;
+                        filled = true;
                     }
                 }
 

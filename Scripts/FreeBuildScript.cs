@@ -1,4 +1,5 @@
 ﻿using System;
+using HarmonyLib;
 using LongArm.UI;
 using LongArm.Util;
 using UnityEngine;
@@ -10,6 +11,12 @@ namespace LongArm.Scripts
     {
         private bool _loggedException = false;
         private PrebuildManager _prebuildManager;
+        private static FreeBuildScript _instance;
+
+        private void Awake()
+        {
+            _instance = this;
+        }
 
         void Update()
         {
@@ -57,7 +64,7 @@ namespace LongArm.Scripts
         {
             try
             {
-                if (GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck.BIT_MECHA))
+                if (GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck_Obsolete.BIT_MECHA))
                 {
                     if (GameMain.data.abnormalityCheck.isGameNormal() && !PluginConfig.playerConfirmedAbnormalityTrigger)
                     {
@@ -66,7 +73,7 @@ namespace LongArm.Scripts
                     }
 
                     Log.LogPopupWithFrequency("Setting abnormality bit for save");
-                    GameMain.abnormalityCheck.mechaCheck.abnormalityCheck.NotifyAbnormalityChecked(GameAbnormalityCheck.BIT_MECHA, true);
+                    GameMain.abnormalityCheck.mechaCheck.abnormalityCheck.NotifyAbnormalityChecked(GameAbnormalityCheck_Obsolete.BIT_MECHA, true);
                 }
 
                 GameMain.localPlanet.factory.BuildFinally(GameMain.mainPlayer, id);
@@ -74,6 +81,24 @@ namespace LongArm.Scripts
             catch (Exception e)
             {
                 Log.Warn($"Got exception building {id} {e}\r\n{e.StackTrace}");
+            }
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(MechaDroneLogic), "UpdateTargets")]
+        public static void UpdateDronesPrefix(MechaDroneLogic __instance)
+        {
+            if (PluginConfig.buildBuildHelperMode == BuildHelperMode.FreeBuild && _instance != null)
+            {
+                var startTime = DateTime.Now;
+
+                foreach (var prebuild in __instance.factory.prebuildPool)
+                {  
+                    if ((DateTime.Now - startTime).TotalMilliseconds > 600)
+                    {
+                        break;
+                    }
+                    _instance.DoFreeBuild(prebuild.id);
+                }
             }
         }
     }

@@ -1,4 +1,8 @@
-﻿using LongArm.Util;
+﻿using System;
+using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
+using LongArm.Util;
 
 namespace LongArm.Player
 {
@@ -13,7 +17,7 @@ namespace LongArm.Player
         {
             _player = player;
         }
-      
+
 
         public static void Reset()
         {
@@ -61,6 +65,62 @@ namespace LongArm.Player
             }
 
             return inventoryManager._player.package.GetItemCount(itemId);
+        }
+
+        public static Guid GetInventoryHash()
+        {
+            var _player = GameMain.mainPlayer;
+            if (_player == null)
+            {
+                Log.Warn($"player is null");
+                return Guid.Empty;
+            }
+
+            var inv = _player.package;
+            if (inv?.grids == null)
+            {
+                Log.Warn($"player package is null == {inv == null} || grids is null {inv?.grids == null}");
+                return Guid.Empty;
+            }
+
+            var itemCounts = new Dictionary<int, int>();
+            for (int index = 0; index < inv.size; ++index)
+            {
+                var itemId = inv.grids[index].itemId;
+                if (itemId < 1)
+                {
+                    continue;
+                }
+
+                var count = inv.grids[index].count;
+                if (itemCounts.TryGetValue(itemId, out _))
+                {
+                    itemCounts[itemId] += count;
+                }
+                else
+                {
+                    itemCounts[itemId] = count;
+                }
+            }
+
+            if (_player.inhandItemId > 0 && _player.inhandItemCount > 0)
+            {
+                itemCounts.TryGetValue(_player.inhandItemId, out var value);
+                itemCounts[_player.inhandItemId] = value + _player.inhandItemCount;
+            }
+
+            var sb = new StringBuilder();
+            foreach (var itemId in itemCounts.Keys)
+            {
+                sb.Append($"{itemId},{itemCounts[itemId]}\r\n");
+            }
+
+
+            using (MD5 md5 = MD5.Create())
+            {
+                byte[] hash = md5.ComputeHash(Encoding.Default.GetBytes(sb.ToString()));
+                return new Guid(hash);
+            }
         }
     }
 }

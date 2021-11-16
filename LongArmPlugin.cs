@@ -18,7 +18,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.0.0";
+        private const string PluginVersion = "1.1.0";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -48,6 +48,9 @@ namespace LongArm
             _harmony.PatchAll(typeof(MechaPatch));
             _harmony.PatchAll(typeof(PrebuildManager));
             _harmony.PatchAll(typeof(LongArmUi));
+            _harmony.PatchAll(typeof(TourFactoryScript));
+            _harmony.PatchAll(typeof(FastBuildScript));
+            _harmony.PatchAll(typeof(FreeBuildScript));
             KeyBindPatch.Init();
             PluginConfig.InitConfig(Config);
             Debug.Log($"LongArm Plugin Loaded");
@@ -177,4 +180,3 @@ namespace LongArm
         }
     }
 }
-
