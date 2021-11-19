@@ -51,9 +51,17 @@ namespace LongArm.Scripts
 
             if (GameMain.mainPlayer == null || GameMain.localPlanet == null || GameMain.localPlanet.factory == null || GameMain.localPlanet.factory.factorySystem == null ||
                 !LongArmPlugin.Initted())
+            {
+                _requestHide = true;
                 return;
+            }
+
             if (FactoryLocationProvider.Instance == null)
+            {
+                _requestHide = true;
                 return;
+            }
+
             FactoryLocationProvider.Instance?.Sync();
             if (PluginConfig.TourMode == FactoryTourMode.None)
                 return;
@@ -62,9 +70,9 @@ namespace LongArm.Scripts
             if (_currentAction.actionDir == ActionDir.None)
                 return;
 
-            EnsureFlying();
             if (_currentAction.actionDir == ActionDir.Auto)
             {
+                EnsureFlying();
                 FlyToNextLocation();
             }
         }
@@ -73,7 +81,6 @@ namespace LongArm.Scripts
         {
             if (Instance == null)
                 Instance = this;
-
 
             // Visible = _prebuildSummary.items.Count > 0;
 
@@ -105,7 +112,7 @@ namespace LongArm.Scripts
             uiInstance.SaveCurrentGuiOptions();
             windowRect = GUILayout.Window(1297895144, windowRect, DrawMainWindowContents, "Factory Tour");
             uiInstance.RestoreGuiSkinOptions();
-          
+            EatInputInRect(windowRect);
         }
 
         private void DrawMainWindowContents(int id = 1111)
@@ -168,7 +175,7 @@ namespace LongArm.Scripts
             var locationProvider = FactoryLocationProvider.Instance;
             if (locationProvider == null)
                 return;
-
+            EnsureFlying();
             var curIntPos = ToIntVector(GameMain.mainPlayer.position);
             var possiblyStuck = curIntPos.Equals(_positionWhenLastOrderGiven) && (DateTime.Now - _lastOrderCreatedAt).TotalSeconds > 5;
             if (_lastOrder == null || _lastOrder.targetReached || (DateTime.Now - _lastOrderCreatedAt).TotalSeconds > 5)
@@ -300,6 +307,12 @@ namespace LongArm.Scripts
                 UIItemPicker.Popup(pos, SetItemFilter);
             }
 
+            var clearBtn = GUILayout.Button("Clear");
+            if (clearBtn)
+            {
+                SetItemFilter(null);
+            }
+
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }
@@ -330,6 +343,7 @@ namespace LongArm.Scripts
         void RequestNext()
         {
             _currentAction.actionDir = ActionDir.Next;
+            EnsureFlying();
             FlyToNextLocation();
         }
 
@@ -338,6 +352,7 @@ namespace LongArm.Scripts
             if (Instance == null)
                 return;
             Instance._currentAction.actionDir = ActionDir.Previous;
+            EnsureFlying();
             Instance.FlyToNextLocation();
         }
 

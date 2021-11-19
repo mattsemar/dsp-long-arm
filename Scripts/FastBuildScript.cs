@@ -39,6 +39,8 @@ namespace LongArm.Scripts
                 !LongArmPlugin.Initted())
                 return;
 
+            if (GameMain.mainPlayer.sailing) 
+                return;
             if (_prebuildManager.HaveWork())
             {
                 CompleteBuildPreviews();

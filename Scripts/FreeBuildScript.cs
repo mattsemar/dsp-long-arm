@@ -33,6 +33,9 @@ namespace LongArm.Scripts
             if (GameMain.mainPlayer == null || GameMain.localPlanet == null || GameMain.localPlanet.factory == null || GameMain.localPlanet.factory.factorySystem == null ||
                 !LongArmPlugin.Initted())
                 return;
+            
+            if (GameMain.mainPlayer.sailing) 
+                return;
 
             if (_prebuildManager.HaveWork())
             {
@@ -64,17 +67,15 @@ namespace LongArm.Scripts
         {
             try
             {
-                if (GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck_Obsolete.BIT_MECHA))
+                if (GameMain.data.gameAbnormality.IsGameNormal() && !PluginConfig.playerConfirmedAbnormalityTrigger)
                 {
-                    if (GameMain.data.abnormalityCheck.isGameNormal() && !PluginConfig.playerConfirmedAbnormalityTrigger)
-                    {
-                        Log.LogPopupWithFrequency("Not doing freebuild until confirmation received. Open UI and switch build mode off of FreeBuild and then back on");
-                        return;
-                    }
-
-                    Log.LogPopupWithFrequency("Setting abnormality bit for save");
-                    GameMain.abnormalityCheck.mechaCheck.abnormalityCheck.NotifyAbnormalityChecked(GameAbnormalityCheck_Obsolete.BIT_MECHA, true);
+                    Log.LogPopupWithFrequency("Not doing freebuild until confirmation received. Open UI and switch build mode off of FreeBuild and then back on");
+                    return;
                 }
+
+                // Log.LogPopupWithFrequency("Setting abnormality bit for save");
+                // GameMain.data.gameAbnormality.NotifyAbnormality();
+                
 
                 GameMain.localPlanet.factory.BuildFinally(GameMain.mainPlayer, id);
             }

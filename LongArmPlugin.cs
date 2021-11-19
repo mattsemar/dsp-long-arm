@@ -18,7 +18,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.1.0";
+        private const string PluginVersion = "1.2.0";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -37,6 +37,8 @@ namespace LongArm
             typeof(BuildPreviewSummary),
             typeof(TourFactoryScript)
         };
+
+        private TourFactoryScript _tourFactoryScript;
 
         private void Awake()
         {
@@ -67,7 +69,7 @@ namespace LongArm
                 return;
             if (!_initted)
             {
-                SavedBuildArea = GameMain.mainPlayer.mecha.buildArea;
+                SavedBuildArea = Math.Max(Math.Min(GameMain.mainPlayer.mecha.buildArea, Configs.freeMode.mechaBuildArea = SavedBuildArea), 80);
                 if (PluginConfig.overrideBuildRange.Value)
                 {
                     Enable();
@@ -85,7 +87,7 @@ namespace LongArm
 
         public void Disable()
         {
-            GameMain.mainPlayer.mecha.buildArea = SavedBuildArea;
+            GameMain.mainPlayer.mecha.buildArea = Math.Max(Math.Min(Configs.freeMode.mechaBuildArea, SavedBuildArea), 80);
         }
 
         private void InitScripts()
@@ -99,6 +101,10 @@ namespace LongArm
                     var script = gameObject.AddComponent(scriptType);
                     _scriptTypesInitted.Add(scriptType);
                     _scripts.Add(script);
+                    if (script is TourFactoryScript factoryScript)
+                    {
+                        _tourFactoryScript = factoryScript;
+                    }
                 }
             }
         }
@@ -117,8 +123,7 @@ namespace LongArm
             _scriptTypesInitted.Clear();
             if (_initted)
             {
-                GameMain.mainPlayer.mecha.buildArea = SavedBuildArea;
-                Configs.freeMode.mechaBuildArea = SavedBuildArea;
+                GameMain.mainPlayer.mecha.buildArea = Math.Max(Math.Min(Configs.freeMode.mechaBuildArea, SavedBuildArea), 80);
             }
 
             _initted = false;
@@ -130,6 +135,11 @@ namespace LongArm
             if (instance == null || !instance._initted)
             {
                 return;
+            }
+
+            if (instance._tourFactoryScript != null)
+            {
+                instance._tourFactoryScript.Visible = false;
             }
 
             GameMain.mainPlayer.mecha.buildArea = instance.SavedBuildArea;

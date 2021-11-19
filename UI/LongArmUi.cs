@@ -38,15 +38,13 @@ namespace LongArm.UI
 
         [Description("Visit storage containers")]
         Storage,
-        
-        [Description("Visit generators")]
-        Generator,
-        
+
+        [Description("Visit generators")] Generator,
+
         [Description("Stop but keep window open")]
         Stopped,
 
         [Description("Close")] None,
-        
     }
 
     public class LongArmUi : MonoBehaviour
@@ -76,6 +74,9 @@ namespace LongArm.UI
         private bool _popupOpened;
         public static BuildPreviewSummary buildPreviewSummary;
         private ItemProto _tourModeItemFilter;
+        private bool _confirmed = false;
+        private bool _controlHeld;
+        private DateTime _controlLastActive = DateTime.Now.AddDays(-1);
 
         private GUIStyle ToolTipStyle { get; set; }
 
@@ -93,9 +94,20 @@ namespace LongArm.UI
                     Log.Debug($"Setting UI window visible=${instance.Visible}");
                 }
             }
+
             if (KeyBindPatch.GetKeyBind("ShowFactoryTour").keyValue)
             {
                 TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible;
+            }
+
+            if (VFInput.control)
+            {
+                _controlHeld = true;
+                _controlLastActive = DateTime.Now;
+            }
+            else if (_controlHeld && (DateTime.Now - _controlLastActive).TotalMilliseconds > 150)
+            {
+                _controlHeld = false;
             }
         }
 
@@ -270,9 +282,9 @@ namespace LongArm.UI
         {
             GUILayout.BeginVertical("Box");
             DrawCenteredLabel("Actions");
-            AddAction("Power", "Add Fuel", "Add fuel from inventory to power generators that are empty", () =>
+            AddAction("Power", "Add Fuel", "Add 1 fuel from inventory to power generators that are empty. Hold control while clicking to apply to all factories in cluster", () =>
             {
-                if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.RequestAddFuel();
+                if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.RequestAddFuel(_controlHeld);
             });
 
             AddAction("Stations", "Add Bots", "Add drones/vessels from inventory to stations (only adds if none of type are found)", () =>
@@ -403,12 +415,12 @@ namespace LongArm.UI
 
         private bool AbnormalityConfirmed()
         {
-            if (GameMain.data?.abnormalityCheck == null)
+            if (GameMain.data?.gameAbnormality == null)
                 return false;
-            if (!GameMain.data.abnormalityCheck.isGameNormal())
+            if (!GameMain.data.gameAbnormality.IsGameNormal())
                 return true;
 
-            return !GameMain.data.abnormalityCheck.IsFunctionNormal(GameAbnormalityCheck_Obsolete.BIT_MECHA) || PluginConfig.playerConfirmedAbnormalityTrigger;
+            return PluginConfig.playerConfirmedAbnormalityTrigger;
         }
 
 
@@ -436,7 +448,7 @@ namespace LongArm.UI
         [HarmonyPostfix]
         [HarmonyPatch(typeof(UIGame), "On_E_Switch")]
         public static void UIGame_On_E_Switch_Postfix()
-        {   
+        {
             if (instance == null)
                 return;
             if (instance.Visible && !UIRoot.instance.uiGame.inventory.gameObject.activeSelf && !UIRoot.instance.uiGame.replicator.gameObject.activeSelf)
@@ -466,6 +478,7 @@ namespace LongArm.UI
                         PluginConfig.buildBuildHelperMode = BuildHelperMode.FreeBuild;
                         _popupOpened = false;
                         _buildHelperMode = BuildHelperMode.FreeBuild;
+                        _confirmed = true;
                     }, delegate
                     {
                         Log.LogAndPopupMessage($"Cancelled");

@@ -19,7 +19,11 @@ be useful in certain situations. All 3 of the active ones will work even when th
 limited by the number of updates per second your computer can do while adding factory machines at a very high speed.
 * None - default setting at each game start in order to prevent accidental disabling of achievements in the case where a different game save was loaded after setting FreeBuild mode
 
-## How to install
+### KeyBinds 
+
+Open game settings to rebind or unbind the keys under the Control tab
+![Config](https://github.com/mattsemar/dsp-long-arm/blob/master/Examples/keybinds.png?raw=true)
+
 
 This mod requires BepInEx to function, download and install it
 first: [link](https://bepinex.github.io/bepinex_docs/master/articles/user_guide/installation/index.html?tabs=tabid-win)
@@ -33,6 +37,15 @@ Extract the archive file and drag `LongArm.dll` into the `BepInEx/plugins` direc
 Click the `Install with Mod Manager` link above.
 
 ## Changelog
+
+#### v1.2.0
+Added support for adding fuel to all generators across all factories (hold CTRL while hitting button)
+
+#### v1.1.3
+Bugfix - fixed issue with FastBuild mode when returning to planet with unrealized prebuilds by delaying action while player is in "sail" mode.   
+
+#### v1.1.1/2
+Rebuild against latest game version
 
 #### v1.1.0
 Fixed exception thrown when preview window layout changes
