@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using BepInEx;
+using CommonAPI;
+using CommonAPI.Systems;
 using HarmonyLib;
 using LongArm.Patch;
 using LongArm.Scripts;
@@ -14,6 +16,8 @@ namespace LongArm
 {
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
     [BepInProcess("DSPGAME.exe")]
+    [BepInDependency(CommonAPIPlugin.GUID)]
+    [CommonAPISubmoduleDependency(nameof(CustomKeyBindSystem))]
     public class LongArmPlugin : BaseUnityPlugin
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
@@ -46,18 +50,18 @@ namespace LongArm
             instance = this;
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(LongArmPlugin));
-            _harmony.PatchAll(typeof(KeyBindPatch));
+            // _harmony.PatchAll(typeof(KeyBindPatch));
             _harmony.PatchAll(typeof(MechaPatch));
             _harmony.PatchAll(typeof(PrebuildManager));
             _harmony.PatchAll(typeof(LongArmUi));
             _harmony.PatchAll(typeof(TourFactoryScript));
             _harmony.PatchAll(typeof(FastBuildScript));
             _harmony.PatchAll(typeof(FreeBuildScript));
-            KeyBindPatch.Init();
+            // KeyBindPatch.Init();
             PluginConfig.InitConfig(Config);
+            RegisterKeyBinds();
             Debug.Log($"LongArm Plugin Loaded");
         }
-
 
         private void Update()
         {
@@ -119,6 +123,7 @@ namespace LongArm
                     Destroy(script.gameObject);
                 }
             }
+
             _scripts.Clear();
             _scriptTypesInitted.Clear();
             if (_initted)
@@ -153,7 +158,7 @@ namespace LongArm
                 return;
             PluginConfig.buildBuildHelperMode = BuildHelperMode.None;
         }
-        
+
         [HarmonyPrefix, HarmonyPatch(typeof(PlayerAction_Inspect), "GetObjectSelectDistance")]
         public static bool InterceptSelectDistance(ref float __result)
         {
@@ -188,5 +193,26 @@ namespace LongArm
 
             GameMain.mainPlayer.mecha.buildArea = range;
         }
+
+        private void RegisterKeyBinds()
+        {
+            CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
+            {
+                id = 108,
+                key = new CombineKey((int)KeyCode.L, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
+                conflictGroup = 2052,
+                name = "Show LongArm Window",
+                canOverride = true
+            });
+            CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
+            {
+                id = 109,
+                key = new CombineKey((int)KeyCode.W, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
+                conflictGroup = 2052,
+                name = "Show LongArm Factory Tour",
+                canOverride = true
+            });
+        }
     }
 }
+

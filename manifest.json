@@ -4,6 +4,8 @@
     "website_url":  "https://github.com/mattsemar/dsp-long-arm",
     "description":  "Extend construction bot range, open factory machine windows from map view, enable faster planet-wide blueprint placement. Now with action buttons for loading power generators with fuel and support for adding drones to stations from player inventory.",
     "dependencies":  [
-                         "xiaoye97-BepInEx-5.4.5"
+                         "xiaoye97-LDBTool-1.8.0",
+                         "xiaoye97-BepInEx-5.4.5",
+                         "CommonAPI-CommonAPI-1.0.1"
                      ]
 }

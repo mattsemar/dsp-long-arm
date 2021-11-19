@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using CommonAPI.Systems;
 using HarmonyLib;
 using LongArm.Scripts;
 using LongArm.Util;
@@ -86,7 +87,7 @@ namespace LongArm.UI
             if (instance == null)
                 instance = this;
 
-            if (KeyBindPatch.GetKeyBind("ShowLongArmWindow").keyValue)
+            if (CustomKeyBindSystem.GetKeyBind("Show LongArm Window").keyValue)
             {
                 if (instance != null)
                 {
@@ -95,7 +96,7 @@ namespace LongArm.UI
                 }
             }
 
-            if (KeyBindPatch.GetKeyBind("ShowFactoryTour").keyValue)
+            if (CustomKeyBindSystem.GetKeyBind("Show LongArm Factory Tour").keyValue)
             {
                 TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible;
             }

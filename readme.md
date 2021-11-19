@@ -34,12 +34,14 @@ Extract the archive file and drag `LongArm.dll` into the `BepInEx/plugins` direc
 
 #### Mod manager
 
-Click the `Install with Mod Manager` link above.
+Click the `Install with Mod Manager` link above. Make sure dependencies are installed, if prompted. This mod will do basically nothing if the keybinds don't get registered and keybinds are 
+now supplied from CommonAPI
 
 ## Changelog
 
 #### v1.2.0
 Added support for adding fuel to all generators across all factories (hold CTRL while hitting button)
+Switched to CommonAPI for keybind registration
 
 #### v1.1.3
 Bugfix - fixed issue with FastBuild mode when returning to planet with unrealized prebuilds by delaying action while player is in "sail" mode.   

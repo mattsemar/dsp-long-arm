@@ -110,7 +110,7 @@ namespace LongArm.Scripts
 
             Init();
             uiInstance.SaveCurrentGuiOptions();
-            windowRect = GUILayout.Window(1297895144, windowRect, DrawMainWindowContents, "Factory Tour");
+            windowRect = GUILayout.Window(1297895144, windowRect, DrawMainWindowContents, "LongArm Factory Tour");
             uiInstance.RestoreGuiSkinOptions();
             EatInputInRect(windowRect);
         }
