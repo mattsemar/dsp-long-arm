@@ -40,6 +40,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.2.2
+Updated build
+
 #### v1.2.1
 Resolved FastBuild/FreeBuild mode performance issue on planets with lots of assembling machines. Should be much snappier now.
 Adjusted height of tour window
