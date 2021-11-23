@@ -5,6 +5,7 @@ using CommonAPI;
 using CommonAPI.Systems;
 using HarmonyLib;
 using LongArm.Patch;
+using LongArm.Player;
 using LongArm.Scripts;
 using LongArm.UI;
 using LongArm.Util;
@@ -17,12 +18,12 @@ namespace LongArm
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
     [BepInProcess("DSPGAME.exe")]
     [BepInDependency(CommonAPIPlugin.GUID)]
-    [CommonAPISubmoduleDependency(nameof(CustomKeyBindSystem))]
+    [CommonAPISubmoduleDependency(nameof(ProtoRegistry), nameof(CustomKeyBindSystem))]
     public class LongArmPlugin : BaseUnityPlugin
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.2.0";
+        private const string PluginVersion = "1.2.1";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -50,14 +51,13 @@ namespace LongArm
             instance = this;
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(LongArmPlugin));
-            // _harmony.PatchAll(typeof(KeyBindPatch));
             _harmony.PatchAll(typeof(MechaPatch));
             _harmony.PatchAll(typeof(PrebuildManager));
             _harmony.PatchAll(typeof(LongArmUi));
             _harmony.PatchAll(typeof(TourFactoryScript));
             _harmony.PatchAll(typeof(FastBuildScript));
             _harmony.PatchAll(typeof(FreeBuildScript));
-            // KeyBindPatch.Init();
+            _harmony.PatchAll(typeof(InventoryManager));
             PluginConfig.InitConfig(Config);
             RegisterKeyBinds();
             Debug.Log($"LongArm Plugin Loaded");
@@ -113,7 +113,6 @@ namespace LongArm
             }
         }
 
-
         private void OnDestroy()
         {
             foreach (var script in _scripts)
@@ -126,7 +125,7 @@ namespace LongArm
 
             _scripts.Clear();
             _scriptTypesInitted.Clear();
-            if (_initted)
+            if (_initted && GameMain.mainPlayer?.mecha != null && Configs.freeMode != null)
             {
                 GameMain.mainPlayer.mecha.buildArea = Math.Max(Math.Min(Configs.freeMode.mechaBuildArea, SavedBuildArea), 80);
             }
@@ -146,7 +145,7 @@ namespace LongArm
             {
                 instance._tourFactoryScript.Visible = false;
             }
-
+            
             GameMain.mainPlayer.mecha.buildArea = instance.SavedBuildArea;
             PluginConfig.buildBuildHelperMode = BuildHelperMode.None;
         }
@@ -196,23 +195,40 @@ namespace LongArm
 
         private void RegisterKeyBinds()
         {
-            CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
+            if (!CustomKeyBindSystem.HasKeyBind("ShowLongArmWindow"))
+                CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
+                {
+                    id = 108,
+                    key = new CombineKey((int)KeyCode.L, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
+                    conflictGroup = 2052,
+                    name = "ShowLongArmWindow",
+                    canOverride = true
+                });
+            else
             {
-                id = 108,
-                key = new CombineKey((int)KeyCode.L, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
-                conflictGroup = 2052,
-                name = "Show LongArm Window",
-                canOverride = true
-            });
-            CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
+                Warn("KeyBind with ID=108, ShowLongArmWindow already bound");
+            }
+            if (!CustomKeyBindSystem.HasKeyBind("ShowLongArmFactoryTour"))
+                CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
+                {
+                    id = 109,
+                    key = new CombineKey((int)KeyCode.W, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
+                    conflictGroup = 2052,
+                    name = "ShowLongArmFactoryTour",
+                    canOverride = true
+                });
+            else
             {
-                id = 109,
-                key = new CombineKey((int)KeyCode.W, CombineKey.CTRL_COMB, ECombineKeyAction.OnceClick, false),
-                conflictGroup = 2052,
-                name = "Show LongArm Factory Tour",
-                canOverride = true
-            });
+                Warn("KeyBind with ID=109, ShowLongArmFactoryTour already bound");
+            }
+            ProtoRegistry.RegisterString("KEYShowLongArmWindow", "Show LongArm Window", "显示 LongArm 窗口");
+            ProtoRegistry.RegisterString("KEYShowLongArmFactoryTour", "Show LongArm FactoryTour Window");
         }
     }
 }
+
+
+
+
+
 

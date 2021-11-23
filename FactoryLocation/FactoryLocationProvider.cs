@@ -144,7 +144,6 @@ namespace LongArm.FactoryLocation
 
         private List<EntityLocation> GetGeneratorLocations()
         {
-            // var filteredItemId = _itemFilter == null || _itemFilter.ID == 0 ? 0 : _itemFilter.ID;
             var newLocations = new List<EntityLocation>();
             for (int i = 1; i < _factory.entityCursor; i++)
             {
@@ -212,7 +211,6 @@ namespace LongArm.FactoryLocation
                 newLocations.Add(new EntityLocation
                 {
                     station = entity,
-                    // position = entity.shipDockPos
                     position = pos
                 });
             }
@@ -305,7 +303,6 @@ namespace LongArm.FactoryLocation
                     var lab = _factory.factorySystem.labPool[entity.labId];
                     if (!lab.matrixMode || lab.products == null)
                     {
-                        Log.Debug($"got a null lab {lab.matrixMode} {lab.products}");
                         continue;
                     }
 

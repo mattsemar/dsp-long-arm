@@ -33,8 +33,8 @@ namespace LongArm.Scripts
             if (GameMain.mainPlayer == null || GameMain.localPlanet == null || GameMain.localPlanet.factory == null || GameMain.localPlanet.factory.factorySystem == null ||
                 !LongArmPlugin.Initted())
                 return;
-            
-            if (GameMain.mainPlayer.sailing) 
+
+            if (GameMain.mainPlayer.sailing)
                 return;
 
             if (_prebuildManager.HaveWork())
@@ -42,7 +42,6 @@ namespace LongArm.Scripts
                 CompleteBuildPreviews();
             }
         }
-        
 
 
         private void CompleteBuildPreviews()
@@ -75,7 +74,7 @@ namespace LongArm.Scripts
 
                 // Log.LogPopupWithFrequency("Setting abnormality bit for save");
                 // GameMain.data.gameAbnormality.NotifyAbnormality();
-                
+
 
                 GameMain.localPlanet.factory.BuildFinally(GameMain.mainPlayer, id);
             }
@@ -84,21 +83,30 @@ namespace LongArm.Scripts
                 Log.Warn($"Got exception building {id} {e}\r\n{e.StackTrace}");
             }
         }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(MechaDroneLogic), "UpdateTargets")]
         public static void UpdateDronesPrefix(MechaDroneLogic __instance)
         {
-            if (PluginConfig.buildBuildHelperMode == BuildHelperMode.FreeBuild && _instance != null)
+            if (PluginConfig.buildBuildHelperMode == BuildHelperMode.FreeBuild && _instance != null && __instance.factory.prebuildCount > 0)
             {
                 var startTime = DateTime.Now;
 
-                foreach (var prebuild in __instance.factory.prebuildPool)
-                {  
+                for (int index = 1; index < GameMain.localPlanet.factory.prebuildCursor; ++index)
+                {
+                    if (GameMain.localPlanet.factory.prebuildPool[index].id != index)
+                        continue;
+                    var prebuildData = GameMain.localPlanet.factory.prebuildPool[index];
+                    if (prebuildData.id < 1)
+                    {
+                        continue;
+                    }
+
                     if ((DateTime.Now - startTime).TotalMilliseconds > 600)
                     {
                         break;
                     }
-                    _instance.DoFreeBuild(prebuild.id);
+                    _instance.DoFreeBuild(prebuildData.id);
                 }
             }
         }

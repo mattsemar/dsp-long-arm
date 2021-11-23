@@ -144,12 +144,14 @@ namespace LongArm.Scripts
         {
             if (PluginConfig.maxVesselsToAdd.Value == 0)
             {
+                Log.Debug("Not adding vessels since maxVesselsToAdd == 0");
                 return (0, 0);
             }
 
             var currentVesselCnt = stationComponent.idleShipCount + stationComponent.workShipCount;
             if (currentVesselCnt > 0 && skipNonEmpty)
             {
+                Log.Debug($"Not adding vessels since current vessel count > 0 ({currentVesselCnt})");
                 return (0, 0);
             }
 

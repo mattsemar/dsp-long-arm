@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
+using HarmonyLib;
 using LongArm.Util;
 
 namespace LongArm.Player
@@ -12,20 +10,13 @@ namespace LongArm.Player
         public static InventoryManager instance => GetInstance();
 
         private global::Player _player;
+        private long _lastInvUpdate = DateTime.Now.Ticks;
 
         private InventoryManager(global::Player player)
         {
             _player = player;
         }
 
-
-        public static void Reset()
-        {
-            if (_instance == null)
-                return;
-            _instance._player = null;
-            _instance = null;
-        }
 
         private static InventoryManager GetInstance()
         {
@@ -67,60 +58,23 @@ namespace LongArm.Player
             return inventoryManager._player.package.GetItemCount(itemId);
         }
 
-        public static Guid GetInventoryHash()
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(StorageComponent), "NotifyStorageChange")]
+        public static void NotifyStorageChange_Postfix(StorageComponent __instance)
         {
-            var _player = GameMain.mainPlayer;
-            if (_player == null)
-            {
-                Log.Warn($"player is null");
-                return Guid.Empty;
-            }
+            if (_instance == null)
+                return;
+            if (_instance._player?.package != __instance)
+                return;
+            _instance._lastInvUpdate = DateTime.Now.Ticks;
+            Log.Debug($"Recorded player inventory change timestamp");
+        }
 
-            var inv = _player.package;
-            if (inv?.grids == null)
-            {
-                Log.Warn($"player package is null == {inv == null} || grids is null {inv?.grids == null}");
-                return Guid.Empty;
-            }
-
-            var itemCounts = new Dictionary<int, int>();
-            for (int index = 0; index < inv.size; ++index)
-            {
-                var itemId = inv.grids[index].itemId;
-                if (itemId < 1)
-                {
-                    continue;
-                }
-
-                var count = inv.grids[index].count;
-                if (itemCounts.TryGetValue(itemId, out _))
-                {
-                    itemCounts[itemId] += count;
-                }
-                else
-                {
-                    itemCounts[itemId] = count;
-                }
-            }
-
-            if (_player.inhandItemId > 0 && _player.inhandItemCount > 0)
-            {
-                itemCounts.TryGetValue(_player.inhandItemId, out var value);
-                itemCounts[_player.inhandItemId] = value + _player.inhandItemCount;
-            }
-
-            var sb = new StringBuilder();
-            foreach (var itemId in itemCounts.Keys)
-            {
-                sb.Append($"{itemId},{itemCounts[itemId]}\r\n");
-            }
-
-
-            using (MD5 md5 = MD5.Create())
-            {
-                byte[] hash = md5.ComputeHash(Encoding.Default.GetBytes(sb.ToString()));
-                return new Guid(hash);
-            }
+        public static bool InventoryChangedSince(long startTimeTicks)
+        {
+            if (_instance == null)
+                return false;
+            return _instance._lastInvUpdate > startTimeTicks;
         }
     }
 }

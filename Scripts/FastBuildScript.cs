@@ -14,7 +14,6 @@ namespace LongArm.Scripts
         private PrebuildManager _prebuildManager;
         private bool _builtSomethingOnLastPass = true;
         private long _lastFailedBuild = DateTime.Now.Ticks;
-        private Guid _inventorySnapShotFromLastPass = Guid.Empty;
         private static FastBuildScript _instance;
 
         private void Awake()
@@ -41,8 +40,11 @@ namespace LongArm.Scripts
 
             if (GameMain.mainPlayer.sailing) 
                 return;
+            if (Time.frameCount % 10 != 0)
+                return;
             if (_prebuildManager.HaveWork())
             {
+                Log.Debug($"looks like there is work to do");
                 CompleteBuildPreviews();
             }
         }
@@ -54,12 +56,11 @@ namespace LongArm.Scripts
 
             var outOfTime = false;
             var builtSomething = false;
-            var inventoryHash = InventoryManager.GetInventoryHash();
-            if (InventoryUnchangedAndNoPrevBuild(inventoryHash))
+            if (InventoryUnchangedAndNoPrevBuild())
                 return;
             while (_prebuildManager.HaveWork())
             {
-                if ((DateTime.Now - startTime).TotalMilliseconds > 400)
+                if ((DateTime.Now - startTime).TotalMilliseconds > 300)
                 {
                     break;
                 }
@@ -72,19 +73,19 @@ namespace LongArm.Scripts
             _builtSomethingOnLastPass = builtSomething;
             if (!builtSomething)
             {
-                _inventorySnapShotFromLastPass = InventoryManager.GetInventoryHash();
                 _lastFailedBuild = DateTime.Now.Ticks;
             }
         }
 
-        private bool InventoryUnchangedAndNoPrevBuild(Guid inventoryHash)
+        private bool InventoryUnchangedAndNoPrevBuild()
         {
-            if (_builtSomethingOnLastPass || _inventorySnapShotFromLastPass != inventoryHash)
+            bool inventoryChangedSince = InventoryManager.InventoryChangedSince(_lastFailedBuild);
+            if (_builtSomethingOnLastPass || inventoryChangedSince)
             {
                 return false;
             }
 
-            return !(new TimeSpan(DateTime.Now.Ticks - _lastFailedBuild).TotalSeconds > 2);
+            return true;
         }
 
         private bool DoFastBuild(int id, bool returnOnNoInv = true)
@@ -121,17 +122,24 @@ namespace LongArm.Scripts
         [HarmonyPatch(typeof(MechaDroneLogic), "UpdateTargets")]
         public static void UpdateTargets_Postfix(MechaDroneLogic __instance)
         {
-            if (PluginConfig.buildBuildHelperMode == BuildHelperMode.FastBuild && _instance != null)
+            if (PluginConfig.buildBuildHelperMode == BuildHelperMode.FastBuild && _instance != null && __instance.factory.prebuildCount > 0)
             {
                 var startTime = DateTime.Now;
 
-                foreach (var prebuild in __instance.factory.prebuildPool)
-                {  
+                for (int index = 1; index < GameMain.localPlanet.factory.prebuildCursor; ++index)
+                {
+                    if (GameMain.localPlanet.factory.prebuildPool[index].id != index)
+                        continue;
+                    var prebuildData = GameMain.localPlanet.factory.prebuildPool[index];
+                    if (prebuildData.id < 1)
+                    {
+                        continue;
+                    }
                     if ((DateTime.Now - startTime).TotalMilliseconds > 600)
                     {
                         break;
                     }
-                    _instance.DoFastBuild(prebuild.id, false);
+                    _instance.DoFastBuild(prebuildData.id, false);
                 }
             }
         }

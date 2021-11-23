@@ -87,7 +87,7 @@ namespace LongArm.UI
             if (instance == null)
                 instance = this;
 
-            if (CustomKeyBindSystem.GetKeyBind("Show LongArm Window").keyValue)
+            if (CustomKeyBindSystem.GetKeyBind("ShowLongArmWindow").keyValue)
             {
                 if (instance != null)
                 {
@@ -96,7 +96,7 @@ namespace LongArm.UI
                 }
             }
 
-            if (CustomKeyBindSystem.GetKeyBind("Show LongArm Factory Tour").keyValue)
+            if (CustomKeyBindSystem.GetKeyBind("ShowLongArmFactoryTour").keyValue)
             {
                 TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible;
             }

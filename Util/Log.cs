@@ -53,6 +53,29 @@ namespace LongArm.Util
             {
                 Warn($"exception with popup: {e.Message}\r\n {e}\r\n{e.StackTrace}\r\n{msgTemplate}");
             }
+        }     
+        
+        private static Dictionary<string, DateTime> _lastMessageTime = new Dictionary<string, DateTime>();
+
+        public static void LogMessageWithFrequency(string msgTemplate, params object[] args)
+        {
+            if (!_lastMessageTime.TryGetValue(msgTemplate, out DateTime lastTime))
+                lastTime = DateTime.Now.Subtract(TimeSpan.FromSeconds(500));
+            try
+            {
+                var msg = string.Format(msgTemplate, args);
+                if ((DateTime.Now - lastTime).TotalMinutes < 2)
+                {
+                    return;
+                }
+
+                _lastMessageTime[msgTemplate] = DateTime.Now;
+                logger.LogWarning(msg);
+            }
+            catch (Exception e)
+            {
+                Warn($"exception with freq msg: {e.Message}\r\n {e}\r\n{e.StackTrace}\r\n{msgTemplate}");
+            }
         }
     }
 }

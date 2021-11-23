@@ -34,9 +34,6 @@
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
 
-    <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Dyson Sphere Program\DSPGAME_Data\Managed\publicized_assemblies\Assembly-CSharp.dll</HintPath>
-    </Reference>
     <Reference Include="BepInEx">
       <HintPath>..\Libs\BepInEx.dll</HintPath>
     </Reference>
@@ -115,7 +112,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="DysonSphereProgram.GameLibs" Version="*-*" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

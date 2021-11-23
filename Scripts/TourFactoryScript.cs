@@ -38,7 +38,9 @@ namespace LongArm.Scripts
         private bool _requestHide;
         private Vector2 _scrollViewVector;
         private Rect windowRect = Rect.zero;
-
+        private int _currentIndex;
+        private int _totalPoints;
+        
         void Awake()
         {
             Instance = this;
@@ -59,10 +61,14 @@ namespace LongArm.Scripts
             if (FactoryLocationProvider.Instance == null)
             {
                 _requestHide = true;
+                _currentIndex = 0;
+                _totalPoints = 0;
                 return;
             }
 
             FactoryLocationProvider.Instance?.Sync();
+            _currentIndex = GetCurrentIndex();
+            _totalPoints = GetTotalLocations();
             if (PluginConfig.TourMode == FactoryTourMode.None)
                 return;
             if (FactoryLocationProvider.Instance == null || !FactoryLocationProvider.Instance.HasWork())
@@ -144,7 +150,7 @@ namespace LongArm.Scripts
             if (windowRect != Rect.zero)
                 return;
             var width = Mathf.Min(Screen.width, ScaleToDefault(300));
-            var height = Screen.height < 560 ? Screen.height : ScaleToDefault(560, false);
+            var height = Screen.height < 250 ? Screen.height : ScaleToDefault(250, false);
             var offsetX = Screen.width - Mathf.RoundToInt((Screen.width - width) / 2f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 2f);
             windowRect = new Rect(offsetX, offsetY, width, height);
@@ -275,7 +281,7 @@ namespace LongArm.Scripts
             }
 
             GUILayout.EndHorizontal();
-            GUILayout.Label($"Current location index: {GetCurrentIndex()} / total points {GetTotalLocations()}");
+            GUILayout.Label($"Current location index: {_currentIndex} / total points {_totalPoints}");
             GUILayout.EndVertical();
 
             GUILayout.EndVertical();
@@ -343,7 +349,7 @@ namespace LongArm.Scripts
         void RequestNext()
         {
             _currentAction.actionDir = ActionDir.Next;
-            EnsureFlying();
+            _issuedFly = false;
             FlyToNextLocation();
         }
 
@@ -352,7 +358,7 @@ namespace LongArm.Scripts
             if (Instance == null)
                 return;
             Instance._currentAction.actionDir = ActionDir.Previous;
-            EnsureFlying();
+            _issuedFly = false;
             Instance.FlyToNextLocation();
         }
 
@@ -366,19 +372,10 @@ namespace LongArm.Scripts
 
         private int GetCurrentIndex()
         {
-            try
-            {
                 var provider = FactoryLocationProvider.Instance;
                 if (provider == null)
                     return 0;
                 return provider.GetCurrentIndex().curIndex;
-            }
-            catch (Exception e)
-            {
-                Log.Warn($"Need to fix this {e}\r\n{e.StackTrace}");
-            }
-
-            return 0;
         }
 
         void SetItemFilter(ItemProto proto)

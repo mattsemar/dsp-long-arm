@@ -30,14 +30,19 @@ first: [link](https://bepinex.github.io/bepinex_docs/master/articles/user_guide/
 
 #### Manually
 
-Extract the archive file and drag `LongArm.dll` into the `BepInEx/plugins` directory.
+First install the [CommonAPI](https://dsp.thunderstore.io/package/CommonAPI/CommonAPI/) mod, this mod depends on it.
+Next, download the archive file, extract contents and drag `LongArm.dll` into the `BepInEx/plugins` directory. 
 
 #### Mod manager
 
-Click the `Install with Mod Manager` link above. Make sure dependencies are installed, if prompted. This mod will do basically nothing if the keybinds don't get registered and keybinds are 
+Click the `Install with Mod Manager` link above. Make sure dependencies are installed, if prompted. This mod will do basically nothing if the keybinds don't get registered, keybinds are 
 now supplied from CommonAPI
 
 ## Changelog
+
+#### v1.2.1
+Resolved FastBuild/FreeBuild mode performance issue on planets with lots of assembling machines. Should be much snappier now.
+Adjusted height of tour window
 
 #### v1.2.0
 Added support for adding fuel to all generators across all factories (hold CTRL while hitting button)

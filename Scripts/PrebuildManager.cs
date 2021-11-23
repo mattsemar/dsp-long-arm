@@ -12,14 +12,14 @@ namespace LongArm.Scripts
     /// <summary>Tracks pre-builds that can be built</summary>
     public class PrebuildManager : MonoBehaviour
     {
-        private readonly List<int> _preBuildIds = new List<int>();
+        private readonly Queue<int> _preBuildIds = new Queue<int>();
         private readonly HashSet<int> _preBuildIdSet = new HashSet<int>();
         private int _preBuildIdsPlanet;
         private bool _dirty;
         private long _lastCheckTicks = DateTime.Now.AddSeconds(10).Ticks; // set forward a bit to give things time to load
         public static PrebuildManager Instance { get; private set; }
 
-        private PrebuildSummary _latestSummary = new PrebuildSummary(); 
+        private PrebuildSummary _latestSummary = new PrebuildSummary();
 
         private void Awake()
         {
@@ -31,12 +31,14 @@ namespace LongArm.Scripts
             if (GameMain.mainPlayer == null || GameMain.localPlanet == null || GameMain.localPlanet.factory == null || GameMain.localPlanet.factory.factorySystem == null ||
                 !LongArmPlugin.Initted())
                 return;
+            if (Time.frameCount % 10 != 0)
+                return;
             if (LastPlanetCheckStale())
             {
                 AddPrebuildIdsToWorkList();
             }
 
-            if (Time.frameCount % 105 == 0)
+            if (Time.frameCount % 100 == 0)
                 Prune();
         }
 
@@ -44,63 +46,46 @@ namespace LongArm.Scripts
         {
             if (_preBuildIds.Count == 0)
                 return;
-            if (_preBuildIdsPlanet != GameMain.localPlanet.id)
+            if (_preBuildIdsPlanet != GameMain.localPlanet?.id)
             {
                 _preBuildIds.Clear();
                 _preBuildIdSet.Clear();
-                _preBuildIdsPlanet = GameMain.localPlanet.id;
-                return;
+                _preBuildIdsPlanet = GameMain.localPlanet?.id ?? 0;
             }
-
-            var factory = GameMain.localPlanet?.factory;
-            if (factory == null)
-                return;
-            Log.Debug($"Pruning {_preBuildIds.Count} for planet {_preBuildIdsPlanet}. Should have {factory.prebuildCount}");
-            var idsToRemove = new List<int>();
-            foreach (var pbId in _preBuildIds)
-            {
-                if (factory.prebuildPool[pbId].id != pbId)
-                {
-                    idsToRemove.Add(pbId);
-                    _preBuildIdSet.Remove(pbId);
-                }
-            }
-
-            foreach (var pbId in idsToRemove)
-            {
-                _preBuildIds.Remove(pbId);
-            }
-            if (_preBuildIds.Count == 0 && PluginConfig.autoShowPreviewStatusWindow.Value)
-                BuildPreviewSummary.instance.Visible = false;
         }
 
         private bool LastPlanetCheckStale()
         {
-            if  (_dirty)
+            if (_dirty)
                 Log.Debug($"dirty flag was true in pb mgr {_lastCheckTicks}");
-            var result = _dirty || new TimeSpan(DateTime.Now.Ticks - _lastCheckTicks).TotalSeconds > 10;
-            if (result)
+            var result = _dirty || new TimeSpan(DateTime.Now.Ticks - _lastCheckTicks).TotalSeconds > 15;
+            if (!result)
             {
-                _lastCheckTicks = DateTime.Now.Ticks;
-                _dirty = false;
+                return false;
             }
 
-            return result;
+            _lastCheckTicks = DateTime.Now.Ticks;
+            _dirty = false;
+            return true;
         }
 
         public bool HaveWork()
         {
-            if (GameMain.localPlanet?.factory?.prebuildPool == null)
+            if (GameMain.localPlanet?.factory?.prebuildPool == null || GameMain.localPlanet.factory.prebuildCount == 0)
+            {
                 return false;
+            }
+
             if (GameMain.localPlanet.id != _preBuildIdsPlanet)
             {
                 Log.Debug($"clearing prebuilds due to planet change");
                 _preBuildIds.Clear();
+                _preBuildIdSet.Clear();
                 _preBuildIdsPlanet = GameMain.localPlanet.id;
                 return false;
             }
 
-            return _preBuildIds.Count > 0;
+            return _preBuildIdSet.Count > 0;
         }
 
         public int TakePrebuild()
@@ -109,8 +94,7 @@ namespace LongArm.Scripts
                 return 0;
             while (_preBuildIds.Count > 0)
             {
-                var pbId = _preBuildIds[0];
-                _preBuildIds.RemoveAt(0);
+                var pbId = _preBuildIds.Dequeue();
                 _preBuildIdSet.Remove(pbId);
                 if (GameMain.localPlanet.factory.prebuildPool[pbId].id > 0)
                     return pbId;
@@ -135,18 +119,28 @@ namespace LongArm.Scripts
             _preBuildIdsPlanet = GameMain.localPlanet.id;
             _preBuildIds.Clear();
             _preBuildIdSet.Clear();
-
-            foreach (var prebuildData in GameMain.localPlanet.factory.prebuildPool)
+            if (GameMain.localPlanet.factory.prebuildCount > 0)
             {
-                if (prebuildData.id < 1)
+                for (int index = 1; index < GameMain.localPlanet.factory.prebuildCursor; ++index)
                 {
-                    continue;
-                }
+                    if (GameMain.localPlanet.factory.prebuildPool[index].id != index)
+                        continue;
+                    var prebuildData = GameMain.localPlanet.factory.prebuildPool[index];
+                    if (prebuildData.id < 1)
+                    {
+                        continue;
+                    }
 
-                if (_preBuildIdSet.Add(prebuildData.id)) 
-                    _preBuildIds.Add(prebuildData.id);
+                    if (_preBuildIdSet.Add(prebuildData.id))
+                        _preBuildIds.Enqueue(prebuildData.id);
+                }
             }
-            
+            else
+            {
+                _preBuildIds.Clear();
+                _preBuildIdSet.Clear();
+            }
+
             _lastCheckTicks = DateTime.Now.Ticks;
         }
 
@@ -163,21 +157,9 @@ namespace LongArm.Scripts
                 BuildPreviewSummary.instance.Visible = true;
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(BuildTool_Click), "CreatePrebuilds")]
-        public static void RecordPrebuildsFromBTClick(BuildTool_Click __instance)
-        {
-            if (Instance == null)
-                return;
-            Log.Debug($"Captured some new build clicks happening");
-            Instance._dirty = true;
-            if (PluginConfig.autoShowPreviewStatusWindow.Value)
-                BuildPreviewSummary.instance.Visible = true;
-        }
-        
         public int TakeClosestPrebuild(Vector3 position)
         {
-            _preBuildIds.Sort((p1, p2) =>
+            new List<int>(_preBuildIds).Sort((p1, p2) =>
             {
                 var p1Distance = Vector3.Distance(position, GameMain.localPlanet.factory.prebuildPool[p1].pos);
                 var p2Distance = Vector3.Distance(position, GameMain.localPlanet.factory.prebuildPool[p2].pos);
@@ -190,12 +172,12 @@ namespace LongArm.Scripts
         public void ReturnPrebuild(int id)
         {
             if (_preBuildIdSet.Add(id))
-                _preBuildIds.Add(id);
+                _preBuildIds.Enqueue(id);
         }
 
         public PrebuildSummary GetSummary(bool forceRefresh = false)
         {
-            if (!forceRefresh  && _latestSummary != null && new TimeSpan(DateTime.Now.Ticks - _latestSummary.updatedAtTicks).TotalSeconds < 4)
+            if (!forceRefresh && _latestSummary != null && new TimeSpan(DateTime.Now.Ticks - _latestSummary.updatedAtTicks).TotalSeconds < 4)
             {
                 return _latestSummary;
             }
@@ -207,6 +189,7 @@ namespace LongArm.Scripts
             {
                 return result;
             }
+
             if (forceRefresh)
                 AddPrebuildIdsToWorkList();
             List<int> localCopy;
@@ -214,13 +197,14 @@ namespace LongArm.Scripts
             {
                 localCopy = new List<int>(_preBuildIds);
             }
+
             var itemByType = new Dictionary<int, PrebuildItemStatus>();
             foreach (var preBuildId in localCopy)
             {
                 var prebuildData = factory.prebuildPool[preBuildId];
-                if (prebuildData.id < 1) 
+                if (prebuildData.id < 1)
                     continue;
-                
+
                 if (!itemByType.ContainsKey(prebuildData.protoId))
                 {
                     var itemStatus = new PrebuildItemStatus
@@ -238,10 +222,11 @@ namespace LongArm.Scripts
                     itemByType[prebuildData.protoId].neededCount++;
                 }
             }
+
             result.items.Sort((i1, i2) =>
             {
-                var itm1ShortFall =  i1.inventoryCount - i1.neededCount;
-                var itm2ShortFall =  i2.inventoryCount - i2.neededCount;
+                var itm1ShortFall = i1.inventoryCount - i1.neededCount;
+                var itm2ShortFall = i2.inventoryCount - i2.neededCount;
                 return itm1ShortFall.CompareTo(itm2ShortFall);
             });
             result.CalculateSummary();
@@ -250,6 +235,5 @@ namespace LongArm.Scripts
             _latestSummary = result;
             return _latestSummary;
         }
-        
     }
 }
