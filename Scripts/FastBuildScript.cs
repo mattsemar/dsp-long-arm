@@ -24,7 +24,7 @@ namespace LongArm.Scripts
 
         void Update()
         {
-            if (PluginConfig.buildBuildHelperMode != BuildHelperMode.FastBuild)
+            if (PluginConfig.buildBuildHelperMode.Value != BuildHelperMode.FastBuild)
                 return;
 
             if (_prebuildManager == null)
@@ -122,7 +122,7 @@ namespace LongArm.Scripts
         [HarmonyPatch(typeof(MechaDroneLogic), "UpdateTargets")]
         public static void UpdateTargets_Postfix(MechaDroneLogic __instance)
         {
-            if (PluginConfig.buildBuildHelperMode == BuildHelperMode.FastBuild && _instance != null && __instance.factory.prebuildCount > 0)
+            if (PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FastBuild && _instance != null && __instance.factory.prebuildCount > 0)
             {
                 var startTime = DateTime.Now;
 

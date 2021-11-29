@@ -6,8 +6,9 @@ namespace LongArm.Util
 {
     public static class PluginConfig
     {
+        public static ConfigEntry<BuildHelperMode> buildBuildHelperMode;
+        
         // not an actual BepInEx Config because we don't want it to be persisted
-        public static BuildHelperMode buildBuildHelperMode = BuildHelperMode.None;
         private static FactoryTourMode _factoryTourMode = FactoryTourMode.None;
         public static bool playerConfirmedAbnormalityTrigger = false;
 
@@ -16,7 +17,6 @@ namespace LongArm.Util
         public static ConfigEntry<bool> overrideInspectionRange;
         public static ConfigEntry<bool> topOffDrones;
         public static ConfigEntry<bool> topOffVessels;
-        public static ConfigEntry<bool> autoShowPreviewStatusWindow;
 
         public static ConfigEntry<int> maxDronesToAdd;
         public static ConfigEntry<int> maxVesselsToAdd;
@@ -34,14 +34,12 @@ namespace LongArm.Util
 
         public static void InitConfig(ConfigFile confFile)
         {
-            buildBuildHelperMode = BuildHelperMode.None;
+            buildBuildHelperMode = confFile.Bind("Main", "Build Helper Mode", BuildHelperMode.None, "Current build helper mode");
             TourMode = FactoryTourMode.None;
             overrideBuildRange = confFile.Bind("Main", "OverrideBuildRange", true,
                 "Extend build range for construction bots");
             overrideInspectionRange = confFile.Bind("Main", "OverrideInspectionRange", true,
                 "Extend inspection range for opening machine/storage windows from map view");
-            autoShowPreviewStatusWindow = confFile.Bind("Main", "AutoShowPreviewStatusWindow", true,
-                "Auto-hide/show preview status window. Will only show preview status when build previews are found. If disabled, window can be opened using UI button");
             
             topOffDrones = confFile.Bind("Stations", "Top Off Drones", false,
                 "Add drones even when not empty. When set, if there are 2 drones in station then 48 will be added, otherwise none will be added");

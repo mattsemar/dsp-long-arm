@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using HarmonyLib;
-using LongArm.Model;
-using LongArm.Player;
-using LongArm.UI;
 using LongArm.Util;
 using UnityEngine;
 
@@ -18,8 +15,6 @@ namespace LongArm.Scripts
         private bool _dirty;
         private long _lastCheckTicks = DateTime.Now.AddSeconds(10).Ticks; // set forward a bit to give things time to load
         public static PrebuildManager Instance { get; private set; }
-
-        private PrebuildSummary _latestSummary = new PrebuildSummary();
 
         private void Awake()
         {
@@ -99,15 +94,7 @@ namespace LongArm.Scripts
                 if (GameMain.localPlanet.factory.prebuildPool[pbId].id > 0)
                     return pbId;
             }
-
-            if (PluginConfig.autoShowPreviewStatusWindow.Value)
-                BuildPreviewSummary.instance.Visible = false;
             return 0;
-        }
-
-        public int RemainingCount()
-        {
-            return _preBuildIdSet.Count;
         }
 
 
@@ -153,8 +140,6 @@ namespace LongArm.Scripts
                 return;
             Log.Debug($"Captured some new prebuilds happening");
             Instance._dirty = true;
-            if (PluginConfig.autoShowPreviewStatusWindow.Value)
-                BuildPreviewSummary.instance.Visible = true;
         }
 
         public int TakeClosestPrebuild(Vector3 position)
@@ -173,67 +158,6 @@ namespace LongArm.Scripts
         {
             if (_preBuildIdSet.Add(id))
                 _preBuildIds.Enqueue(id);
-        }
-
-        public PrebuildSummary GetSummary(bool forceRefresh = false)
-        {
-            if (!forceRefresh && _latestSummary != null && new TimeSpan(DateTime.Now.Ticks - _latestSummary.updatedAtTicks).TotalSeconds < 4)
-            {
-                return _latestSummary;
-            }
-
-            var inventoryManager = InventoryManager.instance;
-            var factory = GameMain.localPlanet?.factory;
-            var result = new PrebuildSummary();
-            if (factory == null || inventoryManager == null)
-            {
-                return result;
-            }
-
-            if (forceRefresh)
-                AddPrebuildIdsToWorkList();
-            List<int> localCopy;
-            lock (_preBuildIds)
-            {
-                localCopy = new List<int>(_preBuildIds);
-            }
-
-            var itemByType = new Dictionary<int, PrebuildItemStatus>();
-            foreach (var preBuildId in localCopy)
-            {
-                var prebuildData = factory.prebuildPool[preBuildId];
-                if (prebuildData.id < 1)
-                    continue;
-
-                if (!itemByType.ContainsKey(prebuildData.protoId))
-                {
-                    var itemStatus = new PrebuildItemStatus
-                    {
-                        inventoryCount = InventoryManager.GetInventoryCount(prebuildData.protoId),
-                        itemName = ItemUtil.GetItemName(prebuildData.protoId),
-                        itemImage = ItemUtil.GetItemProto(prebuildData.protoId).iconSprite,
-                        neededCount = 1
-                    };
-                    itemByType[prebuildData.protoId] = itemStatus;
-                    result.items.Add(itemStatus);
-                }
-                else
-                {
-                    itemByType[prebuildData.protoId].neededCount++;
-                }
-            }
-
-            result.items.Sort((i1, i2) =>
-            {
-                var itm1ShortFall = i1.inventoryCount - i1.neededCount;
-                var itm2ShortFall = i2.inventoryCount - i2.neededCount;
-                return itm1ShortFall.CompareTo(itm2ShortFall);
-            });
-            result.CalculateSummary();
-
-            result.updatedAtTicks = DateTime.Now.Ticks;
-            _latestSummary = result;
-            return _latestSummary;
         }
     }
 }

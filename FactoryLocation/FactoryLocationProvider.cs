@@ -111,7 +111,7 @@ namespace LongArm.FactoryLocation
                 }
             }
 
-            if (_currentMode != FactoryTourMode.None && _currentMode != FactoryTourMode.Stopped)
+            if (_currentMode != FactoryTourMode.None)
                 switch (_currentMode)
                 {
                     case FactoryTourMode.Assemblers:
@@ -186,27 +186,7 @@ namespace LongArm.FactoryLocation
                 var entity = _factory.transport.stationPool[i];
                 if (entity == null || entity.id != i)
                     continue;
-                // if (_itemFilter != null)
-                // {
-                //     var filterMatched = false;
-                //     foreach (var store in entity.storage)
-                //     {
-                //         if (store.itemId < 1)
-                //         {
-                //             continue;
-                //         }
-                //
-                //         if (store.itemId == _itemFilter.ID)
-                //         {
-                //             filterMatched = true;
-                //             break;
-                //         }
-                //     }
-                //
-                //     if (!filterMatched)
-                //         continue;
-                // }
-
+               
                 var pos = _factory.entityPool[entity.entityId].pos;
                 newLocations.Add(new EntityLocation
                 {
@@ -251,12 +231,6 @@ namespace LongArm.FactoryLocation
                 var entity = _factory.veinPool[i];
                 if (entity.id != i)
                     continue;
-                // if (_itemFilter != null)
-                // {
-                //     if (entity.productId != _itemFilter.ID)
-                //         continue;
-                // }
-                //
                 if (HasNearbyPoint(newLocations, entity.pos, 10))
                     continue;
                 if (entity.minerCount > 0 && LDB.items.Select(entity.productId).Name.Contains("Crude"))

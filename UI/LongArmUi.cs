@@ -42,9 +42,6 @@ namespace LongArm.UI
 
         [Description("Visit generators")] Generator,
 
-        [Description("Stop but keep window open")]
-        Stopped,
-
         [Description("Close")] None,
     }
 
@@ -73,9 +70,8 @@ namespace LongArm.UI
         private readonly int _defaultFontSize = ScaleToDefault(12);
         public static LongArmUi instance;
         private bool _popupOpened;
-        public static BuildPreviewSummary buildPreviewSummary;
         private ItemProto _tourModeItemFilter;
-        private bool _confirmed = false;
+        private bool _confirmed;
         private bool _controlHeld;
         private DateTime _controlLastActive = DateTime.Now.AddDays(-1);
 
@@ -145,7 +141,7 @@ namespace LongArm.UI
 
         public void SaveCurrentGuiOptions()
         {
-            _buildHelperMode = PluginConfig.buildBuildHelperMode;
+            _buildHelperMode = PluginConfig.buildBuildHelperMode.Value;
             _savedBackgroundColor = GUI.backgroundColor;
             _savedContentColor = GUI.contentColor;
             _savedColor = GUI.color;
@@ -293,17 +289,6 @@ namespace LongArm.UI
                 if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.RequestAddBots();
             });
 
-            var btnLabel = "Show Preview State";
-            if (buildPreviewSummary != null && buildPreviewSummary.Visible)
-            {
-                btnLabel = "Hide Preview State";
-            }
-
-            AddAction("Build Preview", btnLabel, "Summary of remaining build previews to be built", () =>
-            {
-                PrebuildManager.Instance.GetSummary(true);
-                buildPreviewSummary.Visible = !buildPreviewSummary.Visible;
-            });
             AddAction("Factory Tour", "Show/Hide Tour", "Show tour window", () => { TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible; });
             GUILayout.EndVertical();
         }
@@ -325,13 +310,6 @@ namespace LongArm.UI
         private void DrawPrebuildSection()
         {
             GUILayout.BeginVertical("Box");
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Build Preview Count");
-            var prebuildManager = PrebuildManager.Instance;
-            GUILayout.Label(prebuildManager != null
-                ? new GUIContent(prebuildManager.RemainingCount().ToString(), "Build previews remaining to be built")
-                : new GUIContent("Unknown", "Build previews remaining to be built"));
-            GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label("Build range");
             GUILayout.Label(new GUIContent(GameMain.mainPlayer.mecha.buildArea.ToString(CultureInfo.CurrentCulture), "Current build range of mecha"));
@@ -387,20 +365,20 @@ namespace LongArm.UI
                     {
                         case BuildHelperMode.None:
                             _buildHelperMode = newMode;
-                            PluginConfig.buildBuildHelperMode = newMode;
+                            PluginConfig.buildBuildHelperMode.Value = newMode;
                             break;
                         case BuildHelperMode.FlyToBuild:
-                            PluginConfig.buildBuildHelperMode = newMode;
+                            PluginConfig.buildBuildHelperMode.Value = newMode;
                             _buildHelperMode = newMode;
                             break;
                         case BuildHelperMode.FastBuild:
-                            PluginConfig.buildBuildHelperMode = newMode;
+                            PluginConfig.buildBuildHelperMode.Value = newMode;
                             _buildHelperMode = newMode;
                             break;
                         case BuildHelperMode.FreeBuild:
                             if (AbnormalityConfirmed())
                             {
-                                PluginConfig.buildBuildHelperMode = newMode;
+                                PluginConfig.buildBuildHelperMode.Value = newMode;
                                 _buildHelperMode = newMode;
                             }
                             else
@@ -476,7 +454,7 @@ namespace LongArm.UI
                     "Ok", "Cancel", 0, delegate
                     {
                         PluginConfig.playerConfirmedAbnormalityTrigger = true;
-                        PluginConfig.buildBuildHelperMode = BuildHelperMode.FreeBuild;
+                        PluginConfig.buildBuildHelperMode.Value = BuildHelperMode.FreeBuild;
                         _popupOpened = false;
                         _buildHelperMode = BuildHelperMode.FreeBuild;
                         _confirmed = true;

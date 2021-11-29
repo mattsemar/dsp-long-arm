@@ -1,12 +1,9 @@
 ﻿Long Arm
 
-Provides tools to make planet-wide building a little easier. Open UI with Control+L (configurable in Settings). Starts up with inspect and bot build range extended, 
-but with no Build Helper Modes enabled. 
+Provides tools to make planet-wide building a little easier. Open UI with Control+L (configurable in Settings). On first load, inspect and bot build range will be extended, 
+but no Build Helper Modes will be enabled enabled. 
 
 Does not affect saved games, build range changes are reverted prior to the game saving its data
-
-Use the Build Status window to see how many of each item type are still needed
-![Config](https://github.com/mattsemar/dsp-long-arm/blob/master/Examples/BuildStatus.png?raw=true)
 
 ### Build Helper Modes
 
@@ -15,15 +12,32 @@ be useful in certain situations. All 3 of the active ones will work even when th
 
 * FlyToBuild - queues up commands to send the mecha to nearby build previews (until all are built)
 * FastBuild - slightly cheaty option where builds are done as quickly as the game allows but inventory items _are_ consumed, however bot travel time is ignored
-* FreeBuild - very cheaty option where inventory items are not consumed, builds are done as quickly as the game allows. This mode will disable achievements for your save. This mode is generally
+* FreeBuild - very cheaty option where inventory items are not consumed, builds are done as quickly as the game allows. This mode can disable achievements for your save. This mode is generally
 limited by the number of updates per second your computer can do while adding factory machines at a very high speed.
-* None - default setting at each game start in order to prevent accidental disabling of achievements in the case where a different game save was loaded after setting FreeBuild mode
+* None - default setting
+
+Note that the helper mode used is saved in config now so be cautious when switching between different save games to make sure the mode you want is the one currently selected. 
+
+### Factory Tour Mode
+
+(Default keybind to open window is Control + W)
+
+Designed to help locate parts of the current planet/factory by building a list of locations and then flying mecha to each location in list.
+
+![Tour](https://github.com/mattsemar/dsp-long-arm/blob/master/Examples/Tour.png?raw=true)
+
+Supports finding: veins, stations, generators, storage and assemblers. Use item filter to narrow results down.
+
+Once list is built Next/Previous buttons will issue fly command in mecha to go to next location.
+
+Note: locations for veins and assemblers are only considered distinct if they are more than 10 meters apart
 
 ### KeyBinds 
 
 Open game settings to rebind or unbind the keys under the Control tab
 ![Config](https://github.com/mattsemar/dsp-long-arm/blob/master/Examples/keybinds.png?raw=true)
 
+### Installation
 
 This mod requires BepInEx to function, download and install it
 first: [link](https://bepinex.github.io/bepinex_docs/master/articles/user_guide/installation/index.html?tabs=tabid-win)
@@ -39,6 +53,11 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 now supplied from CommonAPI
 
 ## Changelog
+
+#### v1.3.0
+Removed window showing prebuild status summary since this functionality is now part of the game.
+Build helper mode now persisted between restarts.
+Removed "Auto" option from tour mode 
 
 #### v1.2.2
 Updated build

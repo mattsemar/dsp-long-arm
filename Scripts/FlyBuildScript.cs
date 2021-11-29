@@ -22,7 +22,7 @@ namespace LongArm.Scripts
 
         void Update()
         {
-            if (PluginConfig.buildBuildHelperMode != BuildHelperMode.FlyToBuild)
+            if (PluginConfig.buildBuildHelperMode.Value != BuildHelperMode.FlyToBuild)
                 return;
 
             if (_prebuildManager == null)

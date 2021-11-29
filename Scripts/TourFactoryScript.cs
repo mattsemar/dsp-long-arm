@@ -13,7 +13,6 @@ namespace LongArm.Scripts
     {
         Next,
         Previous,
-        Auto,
         None
     }
 
@@ -66,21 +65,13 @@ namespace LongArm.Scripts
                 return;
             }
 
+            if (PluginConfig.TourMode == FactoryTourMode.None)
+                return;
+
             FactoryLocationProvider.Instance?.Sync();
             _currentIndex = GetCurrentIndex();
             _totalPoints = GetTotalLocations();
-            if (PluginConfig.TourMode == FactoryTourMode.None)
-                return;
-            if (FactoryLocationProvider.Instance == null || !FactoryLocationProvider.Instance.HasWork())
-                return;
-            if (_currentAction.actionDir == ActionDir.None)
-                return;
 
-            if (_currentAction.actionDir == ActionDir.Auto)
-            {
-                EnsureFlying();
-                FlyToNextLocation();
-            }
         }
 
         void OnGUI()
@@ -204,7 +195,7 @@ namespace LongArm.Scripts
 
         private void EnsureFlying()
         {
-            if (PluginConfig.TourMode == FactoryTourMode.Stopped || !Visible)
+            if (!Visible)
                 return;
             if (GameMain.mainPlayer.controller.movementStateInFrame != EMovementState.Fly && !_issuedFly && GameMain.mainPlayer.mecha.thrusterLevel > 1)
             {
@@ -274,12 +265,6 @@ namespace LongArm.Scripts
                 RequestNext();
             }
 
-            var autoButton = GUILayout.Button(new GUIContent("Auto", "Automatically advance to next location for tour"));
-            if (autoButton)
-            {
-                RequestAuto();
-            }
-
             GUILayout.EndHorizontal();
             GUILayout.Label($"Current location index: {_currentIndex} / total points {_totalPoints}");
             GUILayout.EndVertical();
@@ -339,11 +324,6 @@ namespace LongArm.Scripts
 
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
-        }
-
-        void RequestAuto()
-        {
-            _currentAction.actionDir = ActionDir.Auto;
         }
 
         void RequestNext()

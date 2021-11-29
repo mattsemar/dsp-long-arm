@@ -23,7 +23,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.2.2";
+        private const string PluginVersion = "1.3.0";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -39,7 +39,6 @@ namespace LongArm
             typeof(FlyBuildScript),
             typeof(FactoryActionExecutor),
             typeof(LongArmUi),
-            typeof(BuildPreviewSummary),
             typeof(TourFactoryScript)
         };
 
@@ -147,15 +146,6 @@ namespace LongArm
             }
             
             GameMain.mainPlayer.mecha.buildArea = instance.SavedBuildArea;
-            PluginConfig.buildBuildHelperMode = BuildHelperMode.None;
-        }
-
-        [HarmonyPrefix, HarmonyPatch(typeof(GameMain), "Start")]
-        public static void OnGameStart()
-        {
-            if (GameMain.instance.isMenuDemo)
-                return;
-            PluginConfig.buildBuildHelperMode = BuildHelperMode.None;
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(PlayerAction_Inspect), "GetObjectSelectDistance")]
@@ -226,3 +216,4 @@ namespace LongArm
         }
     }
 }
+

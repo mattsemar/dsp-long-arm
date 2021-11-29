@@ -20,7 +20,7 @@ namespace LongArm.Scripts
 
         void Update()
         {
-            if (PluginConfig.buildBuildHelperMode != BuildHelperMode.FreeBuild)
+            if (PluginConfig.buildBuildHelperMode.Value != BuildHelperMode.FreeBuild)
                 return;
 
             if (_prebuildManager == null)
@@ -88,7 +88,7 @@ namespace LongArm.Scripts
         [HarmonyPatch(typeof(MechaDroneLogic), "UpdateTargets")]
         public static void UpdateDronesPrefix(MechaDroneLogic __instance)
         {
-            if (PluginConfig.buildBuildHelperMode == BuildHelperMode.FreeBuild && _instance != null && __instance.factory.prebuildCount > 0)
+            if (PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FreeBuild && _instance != null && __instance.factory.prebuildCount > 0)
             {
                 var startTime = DateTime.Now;
 
