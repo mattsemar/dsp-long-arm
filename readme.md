@@ -54,6 +54,12 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.3.2
+Fixed issue where username shows up as altuser
+
+#### v1.3.1
+Update: Update to work with game version released 20-Jan-2022 (0.9.24.11187), make sure to update to CommonAPI 1.3+
+
 #### v1.3.0
 Removed window showing prebuild status summary since this functionality is now part of the game.
 Build helper mode now persisted between restarts.

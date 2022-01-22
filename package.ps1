@@ -30,6 +30,10 @@ elseif ($vertype -eq "major")
 {
     $new_version = [version]::New($v.Major + 1, 0, 0)
 }
+elseif ($vertype -eq "none")
+{
+    $new_version = [version]::New($v.Major, $v.Minor, $v.Build)
+}
 else
 {
     Write-Host "invalid vertype: should be (major, minor, patch), got $vertype"
@@ -39,7 +43,7 @@ else
 Write-Host "next version $new_version"
 $new_version_string = "$([string]::Join(".", $new_version))";
 
-$sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\LongArmPlugin.cs
+$sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Path .\LongArmPlugin.cs -NoNewline
 
 Import-Module -Name ".\Invoke-MsBuild.psm1"
 Invoke-MsBuild -Path ".\LongArm.sln"

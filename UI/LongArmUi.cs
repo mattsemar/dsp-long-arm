@@ -94,7 +94,8 @@ namespace LongArm.UI
 
             if (CustomKeyBindSystem.GetKeyBind("ShowLongArmFactoryTour").keyValue)
             {
-                TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible;
+                if (!GameMain.mainPlayer.sailing && !GameMain.mainPlayer.warping || TourFactoryScript.Instance.Visible)
+                    TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible;
             }
 
             if (VFInput.control)

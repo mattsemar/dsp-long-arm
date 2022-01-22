@@ -99,7 +99,7 @@ namespace LongArm.Scripts
                 {
                     int itemId = prebuildData.protoId;
                     var count = 1;
-                    GameMain.mainPlayer.package.TakeTailItems(ref itemId, ref count);
+                    GameMain.mainPlayer.package.TakeTailItems(ref itemId, ref count, out int inc);
                     if (count == 0)
                     {
                         if (returnOnNoInv)

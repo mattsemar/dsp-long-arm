@@ -10,6 +10,7 @@ using LongArm.Scripts;
 using LongArm.UI;
 using LongArm.Util;
 using UnityEngine;
+using UnityEngine.UI;
 using static LongArm.Util.Log;
 using Debug = UnityEngine.Debug;
 
@@ -23,7 +24,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.3.0";
+        private const string PluginVersion = "1.3.1";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -58,6 +59,20 @@ namespace LongArm
             _harmony.PatchAll(typeof(FreeBuildScript));
             _harmony.PatchAll(typeof(InventoryManager));
             PluginConfig.InitConfig(Config);
+            if (!string.IsNullOrEmpty(PluginConfig.versionTextOverride.Value))
+            {
+                var myAccountName = "Matt";
+                AccountData.me.detail.userName = myAccountName;
+                var favoritesLabel = GameObject.Find("UI Root/Overlay Canvas/In Game/version-text");
+                if (favoritesLabel != null)
+                {
+                    var textComp = favoritesLabel.GetComponent<Text>();
+                    if (textComp != null)
+                    {
+                        textComp.text = $"Early Access 0.xx\r\n{myAccountName}";
+                    }
+                }
+            }
             RegisterKeyBinds();
             Debug.Log($"LongArm Plugin Loaded");
         }
@@ -85,6 +100,10 @@ namespace LongArm
                 _initted = true;
             }
 
+            if (GameMain.data != null)
+            {
+                GameMain.data.account.detail.userName = "altuser";
+            }
             InitScripts();
         }
 

@@ -206,12 +206,6 @@ namespace LongArm.FactoryLocation
                 var entity = _factory.factoryStorage.storagePool[i];
                 if (entity == null || entity.id != i)
                     continue;
-                // if (_itemFilter != null)
-                // {
-                //     var filterMatched = false;
-                //     if (entity.GetItemCount(_itemFilter.ID) < 1)
-                //         continue;
-                // }
 
                 newLocations.Add(new EntityLocation
                 {

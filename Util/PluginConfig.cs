@@ -20,6 +20,7 @@ namespace LongArm.Util
 
         public static ConfigEntry<int> maxDronesToAdd;
         public static ConfigEntry<int> maxVesselsToAdd;
+        public static ConfigEntry<string> versionTextOverride;
 
         public static FactoryTourMode TourMode
         {
@@ -53,6 +54,7 @@ namespace LongArm.Util
             maxVesselsToAdd = confFile.Bind("Stations", "Max Percent Vessels to Add", 100,
                 new ConfigDescription("(percent) Override default behavior of adding max allowed vessels. 0-100% supported, 0 skips adding vessels",
                     new AcceptableValueRange<int>(0, 100)));
+            versionTextOverride = confFile.Bind("Custom", "Version text to put in top corner", "", "change text in top right corner");
         }
     }
 }

@@ -95,7 +95,7 @@ namespace LongArm.Scripts
                 return;
             }
 
-            if (uiGame.starmap.active || uiGame.dysonmap.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active)
+            if (uiGame.starmap.active || uiGame.dysonEditor.active || uiGame.globemap.active || uiGame.escMenu.active || uiGame.techTree.active)
             {
                 return;
             }
@@ -252,8 +252,8 @@ namespace LongArm.Scripts
             AddNeedItemFilter();
 
             GUILayout.BeginVertical();
-            GUILayout.BeginHorizontal();
             var prevButton = GUILayout.Button(new GUIContent("Previous", "Go back to previous location in tour"));
+            GUILayout.BeginHorizontal();
             if (prevButton)
             {
                 RequestPrevious();
@@ -292,7 +292,7 @@ namespace LongArm.Scripts
             var button = GUILayout.Button("Set Filter");
             if (button)
             {
-                Vector2 pos = new Vector2(-300, 238);
+                Vector2 pos = new Vector2(-500, 238);
 
                 UIItemPicker.Close();
                 UIItemPicker.Popup(pos, SetItemFilter);

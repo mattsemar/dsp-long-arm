@@ -273,8 +273,8 @@ namespace LongArm.Scripts
                         if (inventoryManager.RemoveItemImmediately(fuelItemId, 1))
                         {
                             Log.Debug($"Removed {ItemUtil.GetItemName(fuelItemId)} from inventory for gen on planet {factory.planet.displayName}");
-                            generator.SetNewFuel(fuelItemId, 1);
-                            factory.powerSystem.genPool[generator.id].SetNewFuel(fuelItemId, 1);
+                            generator.SetNewFuel(fuelItemId, 1, 0);
+                            factory.powerSystem.genPool[generator.id].SetNewFuel(fuelItemId, 1, 0);
                             filled = true;
                             actuallyFilledCount++;
                             break;
