@@ -88,24 +88,40 @@ namespace LongArm.Scripts
         [HarmonyPatch(typeof(MechaDroneLogic), "UpdateTargets")]
         public static void UpdateDronesPrefix(MechaDroneLogic __instance)
         {
-            if (PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FreeBuild && _instance != null && __instance.factory.prebuildCount > 0)
+            
+            var factory = GameMain.localPlanet.factory;
+            if (PluginConfig.buildBuildHelperMode.Value != BuildHelperMode.FreeBuild || _instance == null || __instance.factory.prebuildCount <= 0)
             {
-                var startTime = DateTime.Now;
+                return;
+            }
 
-                for (int index = 1; index < GameMain.localPlanet.factory.prebuildCursor; ++index)
+            var startTime = DateTime.Now;
+                
+            // this prebuild recycle logic adapted from https://github.com/Velociraptor115/DSPMods
+            if (factory.prebuildRecycleCursor > 0)
+            {
+                // This means that we can probably get away with just looking at the recycle instances
+                for (int i = factory.prebuildRecycleCursor; i < factory.prebuildCursor; i++)
                 {
-                    if (GameMain.localPlanet.factory.prebuildPool[index].id != index)
+                    if ((DateTime.Now - startTime).TotalMilliseconds > 600)
+                        break;
+                    _instance.DoFreeBuild(factory.prebuildRecycle[i]);
+                }
+            }
+            else
+            {
+                // Highly probable that a prebuildPool resize took place this tick.
+                for (int i = 1; i < factory.prebuildCursor; i++)
+                {
+                    if (factory.prebuildPool[i].id != i)
                         continue;
-                    var prebuildData = GameMain.localPlanet.factory.prebuildPool[index];
+                    var prebuildData = factory.prebuildPool[i];
                     if (prebuildData.id < 1)
                     {
                         continue;
                     }
-
                     if ((DateTime.Now - startTime).TotalMilliseconds > 600)
-                    {
                         break;
-                    }
                     _instance.DoFreeBuild(prebuildData.id);
                 }
             }

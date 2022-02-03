@@ -240,18 +240,16 @@ namespace LongArm.Scripts
             var totalGenCount = 0;
             for (int i = 1; i < factory.powerSystem.genCursor; i++)
             {
-                var generator = factory.powerSystem.genPool[i];
+                ref var generator = ref factory.powerSystem.genPool[i];
                 if (generator.id != i)
                     continue;
-                
-                var entity = factory.entityPool[generator.entityId];
+
+                ref var entity = ref factory.entityPool[generator.entityId];
 
                 totalGenCount++;
-                // Log.Debug($"checking generator {JsonUtility.ToJson(generator)} {entity.protoId} {ItemUtil.GetItemName(entity.protoId)}");
 
                 if (IsGeneratorFueled(generator, entity))
                 {
-                    // Log.Debug($"Generator already has fuel {ItemUtil.GetItemName(entity.protoId)} {factory.planet.displayName}");
                     alreadyFilledCount++;
                     continue;
                 }
@@ -316,7 +314,7 @@ namespace LongArm.Scripts
             }
             if (entityData.protoId == ARTIFICIAL_STAR_ID)
             {
-                return generator.fuelId > 0 || generator.curFuelId > 0;
+                return generator.currentStrength > 0;
             }
 
             if (entityData.protoId == THERMAL_POWER_PLANT)

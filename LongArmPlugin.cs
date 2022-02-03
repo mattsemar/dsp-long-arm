@@ -24,7 +24,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.3.1";
+        private const string PluginVersion = "1.3.3";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
@@ -100,10 +100,6 @@ namespace LongArm
                 _initted = true;
             }
 
-            if (GameMain.data != null)
-            {
-                GameMain.data.account.detail.userName = "altuser";
-            }
             InitScripts();
         }
 
