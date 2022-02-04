@@ -1,6 +1,6 @@
 {
     "name":  "LongArm",
-    "version_number":  "1.3.3",
+    "version_number":  "1.3.4",
     "website_url":  "https://github.com/mattsemar/dsp-long-arm",
     "description":  "Extend construction bot range, open factory machine windows from map view, enable faster planet-wide blueprint placement. Now with action buttons for loading power generators with fuel and support for adding drones to stations from player inventory.",
     "dependencies":  [

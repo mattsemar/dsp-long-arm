@@ -54,6 +54,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.3.4
+Bugfix: reverted change to FastBuild/FreeBuild mode (thanks Speedy for report)  
+
 #### v1.3.3
 Bugfix: fixed issue where artificial stars would not be refilled (thanks for report Valoneu) 
 

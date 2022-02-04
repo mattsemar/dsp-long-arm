@@ -122,33 +122,15 @@ namespace LongArm.Scripts
         [HarmonyPatch(typeof(MechaDroneLogic), "UpdateTargets")]
         public static void UpdateTargets_Postfix(MechaDroneLogic __instance)
         {
-            var factory = GameMain.localPlanet.factory;
-            if (PluginConfig.buildBuildHelperMode.Value != BuildHelperMode.FastBuild || _instance == null || __instance.factory.prebuildCount <= 0)
+            if (PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FastBuild && _instance != null && __instance.factory.prebuildCount > 0)
             {
-                return;
-            }
+                var startTime = DateTime.Now;
 
-            var startTime = DateTime.Now;
-                
-            // this prebuild recycle logic adapted from https://github.com/Velociraptor115/DSPMods
-            if (factory.prebuildRecycleCursor > 0)
-            {
-                // This means that we can probably get away with just looking at the recycle instances
-                for (int i = factory.prebuildRecycleCursor; i < factory.prebuildCursor; i++)
+                for (int index = 1; index < GameMain.localPlanet.factory.prebuildCursor; ++index)
                 {
-                    if ((DateTime.Now - startTime).TotalMilliseconds > 600)
-                        break;
-                    _instance.DoFastBuild(factory.prebuildRecycle[i], false);
-                }
-            }
-            else
-            {
-                // Highly probable that a prebuildPool resize took place this tick.
-                for (int i = 1; i < factory.prebuildCursor; i++)
-                {
-                    if (factory.prebuildPool[i].id != i)
+                    if (GameMain.localPlanet.factory.prebuildPool[index].id != index)
                         continue;
-                    var prebuildData = factory.prebuildPool[i];
+                    var prebuildData = GameMain.localPlanet.factory.prebuildPool[index];
                     if (prebuildData.id < 1)
                     {
                         continue;
