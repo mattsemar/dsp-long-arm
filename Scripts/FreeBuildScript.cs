@@ -101,10 +101,12 @@ namespace LongArm.Scripts
                     {
                         continue;
                     }
+
                     if ((DateTime.Now - startTime).TotalMilliseconds > 600)
                     {
                         break;
                     }
+
                     _instance.DoFreeBuild(prebuildData.id);
                 }
             }

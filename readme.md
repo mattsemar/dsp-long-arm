@@ -54,6 +54,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.3.5
+Update: Add fuel should now preserve proliferator points on added fuel items  
+
 #### v1.3.4
 Bugfix: reverted change to FastBuild/FreeBuild mode (thanks Speedy for report)  
 

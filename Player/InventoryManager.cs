@@ -32,10 +32,10 @@ namespace LongArm.Player
             return result;
         }
 
-        public bool RemoveItemImmediately(int itemId, int count)
+        public bool RemoveItemImmediately(int itemId, int count, out int inc)
         {
             int cnt = count;
-            _player.package.TakeTailItems(ref itemId, ref cnt, out int inc);
+            _player.package.TakeTailItems(ref itemId, ref cnt, out inc);
             return cnt == count;
         }
 

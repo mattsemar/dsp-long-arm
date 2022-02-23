@@ -268,11 +268,11 @@ namespace LongArm.Scripts
                 {
                     if (fuelItemId > 0)
                     {
-                        if (inventoryManager.RemoveItemImmediately(fuelItemId, 1))
+                        if (inventoryManager.RemoveItemImmediately(fuelItemId, 1, out int inc))
                         {
                             Log.Debug($"Removed {ItemUtil.GetItemName(fuelItemId)} from inventory for gen on planet {factory.planet.displayName}");
-                            generator.SetNewFuel(fuelItemId, 1, 0);
-                            factory.powerSystem.genPool[generator.id].SetNewFuel(fuelItemId, 1, 0);
+                            generator.SetNewFuel(fuelItemId, 1, (short)inc);
+                            factory.powerSystem.genPool[generator.id].SetNewFuel(fuelItemId, 1, (short)inc);
                             filled = true;
                             actuallyFilledCount++;
                             break;
@@ -288,9 +288,10 @@ namespace LongArm.Scripts
                         alreadyFilledCount++;
                         filled = true;
                         
-                    } else if (inventoryManager.RemoveItemImmediately(generator.catalystId, 1))
+                    } else if (inventoryManager.RemoveItemImmediately(generator.catalystId, 1, out int inc))
                     {
                         factory.powerSystem.genPool[generator.id].catalystPoint += 3600;
+                        factory.powerSystem.genPool[generator.id].catalystIncPoint += inc * 3600;
                         filled = true;
                         actuallyFilledCount++;
                     }
