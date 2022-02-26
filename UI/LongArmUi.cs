@@ -74,6 +74,8 @@ namespace LongArm.UI
         private bool _confirmed;
         private bool _controlHeld;
         private DateTime _controlLastActive = DateTime.Now.AddDays(-1);
+        private ItemProto _targetedProliferatorItem = LDB.items.Select(PluginConfig.currentSprayTargetItem.Value);
+        private int _targetedProliferatorLevel = 1;
 
         private GUIStyle ToolTipStyle { get; set; }
 
@@ -201,6 +203,13 @@ namespace LongArm.UI
 
         private void Init()
         {
+            if (_targetedProliferatorItem == null)
+            {
+                // config must be messed with manually
+                Log.Warn($"Invalid target spray item {PluginConfig.currentSprayTargetItem.Value}. Resetting");
+                PluginConfig.currentSprayTargetItem.Value = 1006;
+            }
+
             if (_tooltipBg == null && !needReinit)
             {
                 return;
@@ -237,6 +246,7 @@ namespace LongArm.UI
                 GUILayout.BeginVertical("Box");
                 DrawOverrideBuildRange();
                 DrawOverrideInspectRange();
+                DrawOverrideDragBuildRange();
                 GUILayout.EndVertical();
                 DrawPrebuildSection();
 
@@ -291,7 +301,43 @@ namespace LongArm.UI
             });
 
             AddAction("Factory Tour", "Show/Hide Tour", "Show tour window", () => { TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible; });
+            // AddProliferatorAction();
             GUILayout.EndVertical();
+        }
+
+        private void AddProliferatorAction()
+        {
+            // GUILayout.BeginVertical("Box");
+
+            GUILayout.BeginHorizontal();
+
+            GUILayout.Label("");
+            var maxHeightSz = ItemUtil.GetItemImageHeight() / 2;
+
+            // GUILayout.BeginHorizontal(GUI.skin.label, maxHeight);
+            var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
+            var currSelected = new GUIContent(_targetedProliferatorItem.iconSprite.texture, $"Spray all {_targetedProliferatorItem.Name.Translate()} on belts and in machines to selected level");
+
+            // GUI.Label(rect, currSelected);
+            var button = GUI.Button(rect,  currSelected);
+            if (button)
+            {
+                Vector2 pos = new Vector2(-100, 238);
+
+                UIItemPicker.Close();
+                UIItemPicker.Popup(pos, SetItemFilter);
+            }
+
+            DrawLevels(ref _targetedProliferatorLevel, 1, 3);
+            // DrawRangeField(ref _targetedProliferatorLevel, 1, 3);
+
+            var pressed = GUILayout.Button(new GUIContent("Spray", "Spray items"));
+            if (pressed)
+            {
+                if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.SprayItems(_targetedProliferatorItem, _targetedProliferatorLevel);
+            }
+
+            GUILayout.EndHorizontal();
         }
 
         private void AddAction(string actionCategory, string buttonText, string buttonTip, Action buttonAction)
@@ -326,6 +372,20 @@ namespace LongArm.UI
             if (result != PluginConfig.overrideInspectionRange.Value)
             {
                 PluginConfig.overrideInspectionRange.Value = result;
+            }
+
+            GUILayout.EndHorizontal();
+        }
+        private void DrawOverrideDragBuildRange()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Drag build limit");
+            var newLimit = PluginConfig.dragBuildOverride.Value == 0 ? 15 : PluginConfig.dragBuildOverride.Value;
+            var prevLimit = newLimit;
+            DrawRangeField(ref newLimit, 1, 1000);
+            if (prevLimit != newLimit)
+            {
+                PluginConfig.dragBuildOverride.Value = newLimit;
             }
 
             GUILayout.EndHorizontal();
@@ -486,6 +546,75 @@ namespace LongArm.UI
             }
 
             return (int)(input * ratio);
+        }
+
+        void SetItemFilter(ItemProto proto)
+        {
+            if (proto == null)
+            {
+                Log.Debug($"not changing target item to null");
+                return;
+            }
+
+            _targetedProliferatorItem = proto;
+            PluginConfig.currentSprayTargetItem.Value = proto.ID;
+        }
+
+        private void DrawRangeField(ref int newVal, int min, int max)
+        {
+            GUILayout.BeginHorizontal();
+
+
+            var result = GUILayout.HorizontalSlider(newVal, min, max, GUILayout.MinWidth(30));
+            if (result >= min && result <= max)
+            {
+                newVal = (int)result;
+            }
+
+            var strVal = newVal.ToString();
+            var strResult = GUILayout.TextField(strVal, GUILayout.Width(50));
+            GUILayout.EndHorizontal();
+
+            if (strResult != strVal)
+            {
+                try
+                {
+                    var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
+                    var clampedResultVal = Mathf.Clamp(resultVal, min, max);
+                    newVal = (int)clampedResultVal;
+                }
+                catch (FormatException)
+                {
+                    // Ignore user typing in bad data
+                }
+            }
+        }
+
+        private void DrawLevels(ref int newVal, int min, int max)
+        {
+            GUILayout.BeginHorizontal();
+            // newVal = Mathf.Clamp(newVal, min, max);
+            var selections = new string[max - min + 1];
+            for (int i = 0; i < selections.Length; i++)
+            {
+                if (newVal - 1 == i)
+                {
+                    selections[i] =   $"<b>{i + 1}</b>";                 
+                }
+                else
+                {
+                    selections[i] = $"{i + 1}";
+                }
+            }
+            var selectionGrid = GUILayout.SelectionGrid(newVal - 1, selections, 3);
+            // return new GUIContent(label, $"<b>{parentDescription}</b> {currentlySelectedIndicator} {sval}");
+            // var result = GUILayout.VerticalSlider(newVal, min, max);
+            if (newVal - 1 != selectionGrid)
+            { 
+                newVal = selectionGrid + 1;
+            }
+
+            GUILayout.EndHorizontal();
         }
     }
 }

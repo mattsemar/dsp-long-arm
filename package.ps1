@@ -48,7 +48,7 @@ $sourceFileContent -replace $old_vernum, $new_version_string  | Set-Content -Pat
 Import-Module -Name ".\Invoke-MsBuild.psm1"
 Invoke-MsBuild -Path ".\LongArm.sln"
 
-Copy-Item -Path bin/Debug/netstandard2.0/LongArm.dll -Destination tmp_release
+Copy-Item -Path bin/Debug/net48/LongArm.dll -Destination tmp_release
 Copy-Item readme.md -Destination tmp_release\README.md
 Copy-Item icon.png -Destination tmp_release
 

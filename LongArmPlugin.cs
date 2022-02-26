@@ -10,7 +10,6 @@ using LongArm.Scripts;
 using LongArm.UI;
 using LongArm.Util;
 using UnityEngine;
-using UnityEngine.UI;
 using static LongArm.Util.Log;
 using Debug = UnityEngine.Debug;
 
@@ -24,13 +23,15 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.3.5";
+        private const string PluginVersion = "1.3.6";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;
         public float SavedBuildArea { get; private set; }
-        private HashSet<Type> _scriptTypesInitted = new HashSet<Type>();
-        private List<Component> _scripts = new List<Component>();
+        private bool _updateBuildLimitRequested;
+        private int _updatedDragBuildLimit;
+        private HashSet<Type> _scriptTypesInitted = new();
+        private List<Component> _scripts = new();
 
         private static readonly Type[] _scriptTypes =
         {
@@ -59,21 +60,12 @@ namespace LongArm
             _harmony.PatchAll(typeof(FreeBuildScript));
             _harmony.PatchAll(typeof(InventoryManager));
             PluginConfig.InitConfig(Config);
-            if (!string.IsNullOrEmpty(PluginConfig.versionTextOverride.Value))
-            {
-                var myAccountName = "Matt";
-                AccountData.me.detail.userName = myAccountName;
-                var favoritesLabel = GameObject.Find("UI Root/Overlay Canvas/In Game/version-text");
-                if (favoritesLabel != null)
-                {
-                    var textComp = favoritesLabel.GetComponent<Text>();
-                    if (textComp != null)
-                    {
-                        textComp.text = $"Early Access 0.xx\r\n{myAccountName}";
-                    }
-                }
-            }
             RegisterKeyBinds();
+            _updateBuildLimitRequested = PluginConfig.dragBuildOverride.Value > 0;
+            if (_updateBuildLimitRequested)
+            {
+                _updatedDragBuildLimit = PluginConfig.dragBuildOverride.Value;
+            }
             Debug.Log($"LongArm Plugin Loaded");
         }
 
@@ -101,6 +93,24 @@ namespace LongArm
             }
 
             InitScripts();
+            if (_updateBuildLimitRequested)
+            {
+                ApplyDragBuildLimitUpdate();
+            }
+        }
+
+        private void ApplyDragBuildLimitUpdate()
+        {
+            var mainPlayerController = GameMain.mainPlayer.controller;
+            var clickTool = mainPlayerController != null  && mainPlayerController.actionBuild?.clickTool != null ? mainPlayerController.actionBuild.clickTool : null;
+            if (clickTool == null)
+            {
+                return;
+            }
+
+            clickTool.dotsSnapped = new Vector3[_updatedDragBuildLimit];
+            _updateBuildLimitRequested = false;
+            Warn($"Updated drag limit to {clickTool.dotsSnapped.Length}");
         }
 
         public void Disable()
@@ -213,6 +223,7 @@ namespace LongArm
             {
                 Warn("KeyBind with ID=108, ShowLongArmWindow already bound");
             }
+
             if (!CustomKeyBindSystem.HasKeyBind("ShowLongArmFactoryTour"))
                 CustomKeyBindSystem.RegisterKeyBind<PressKeyBind>(new BuiltinKey
                 {
@@ -226,9 +237,15 @@ namespace LongArm
             {
                 Warn("KeyBind with ID=109, ShowLongArmFactoryTour already bound");
             }
+
             ProtoRegistry.RegisterString("KEYShowLongArmWindow", "Show LongArm Window", "显示 LongArm 窗口");
             ProtoRegistry.RegisterString("KEYShowLongArmFactoryTour", "Show LongArm FactoryTour Window");
         }
+
+        public void UpdateDragBuildLimit(int newLimit)
+        {
+            _updateBuildLimitRequested = true;
+            _updatedDragBuildLimit = newLimit;
+        }
     }
 }
-

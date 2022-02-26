@@ -54,6 +54,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.3.6
+Update: Add ability to override drag build range. Thanks Raptor for suggestion  
+
 #### v1.3.5
 Update: Add fuel should now preserve proliferator points on added fuel items  
 

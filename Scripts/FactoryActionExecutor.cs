@@ -59,7 +59,7 @@ namespace LongArm.Scripts
                 case ActionType.AddFuel:
                     Fill(true);
                     break;
-                case ActionType.AddFuelAllPlanets :
+                case ActionType.AddFuelAllPlanets:
                     Fill(false);
                     break;
                 case ActionType.AddBots:
@@ -253,7 +253,7 @@ namespace LongArm.Scripts
                     alreadyFilledCount++;
                     continue;
                 }
-                
+
                 needFuelCount++;
                 int[] fuelNeed = ItemProto.fuelNeeds[generator.fuelMask];
                 if (fuelNeed == null)
@@ -287,8 +287,8 @@ namespace LongArm.Scripts
                     {
                         alreadyFilledCount++;
                         filled = true;
-                        
-                    } else if (inventoryManager.RemoveItemImmediately(generator.catalystId, 1, out int inc))
+                    }
+                    else if (inventoryManager.RemoveItemImmediately(generator.catalystId, 1, out int inc))
                     {
                         factory.powerSystem.genPool[generator.id].catalystPoint += 3600;
                         factory.powerSystem.genPool[generator.id].catalystIncPoint += inc * 3600;
@@ -313,6 +313,7 @@ namespace LongArm.Scripts
             {
                 return true;
             }
+
             if (entityData.protoId == ARTIFICIAL_STAR_ID)
             {
                 return generator.currentStrength > 0;
@@ -320,7 +321,7 @@ namespace LongArm.Scripts
 
             if (entityData.protoId == THERMAL_POWER_PLANT)
             {
-                return generator.curFuelId > 0 && generator.currentStrength >0;
+                return generator.curFuelId > 0 && generator.currentStrength > 0;
             }
 
             if (entityData.protoId == RAY_RECEIVER)
@@ -335,6 +336,20 @@ namespace LongArm.Scripts
 
             Log.Debug($"Generator type not explicitly handled for add fuel case");
             return false;
+        }
+
+        public void SprayItems(ItemProto itemFilter, int targetLevel)
+        {
+            if (itemFilter == null)
+            {
+                Log.LogAndPopupMessage("Select target item type");
+                return;
+            }
+            var factorySprayer = new FactorySprayer(itemFilter, targetLevel);
+            if (factorySprayer.Prompt())
+            {
+                factorySprayer.DoSprayAction();
+            }
         }
     }
 }

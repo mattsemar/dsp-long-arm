@@ -46,6 +46,21 @@ namespace LongArm.Player
             return cnt;
         }
 
+        public (int cnt, int inc) CountItems(int itemId)
+        {
+            var countResult = 0;
+            var incResult = 0;
+            foreach (var grid in _player.package.grids)
+            {
+                if (grid.itemId == 0 || grid.itemId != itemId)
+                    continue;
+                countResult += grid.count;
+                incResult += grid.inc;
+            }
+
+            return (countResult, incResult);
+        }
+
         public static int GetInventoryCount(int itemId)
         {
             var inventoryManager = GetInstance();
@@ -67,7 +82,6 @@ namespace LongArm.Player
             if (_instance._player?.package != __instance)
                 return;
             _instance._lastInvUpdate = DateTime.Now.Ticks;
-            Log.Debug($"Recorded player inventory change timestamp");
         }
 
         public static bool InventoryChangedSince(long startTimeTicks)
@@ -75,6 +89,11 @@ namespace LongArm.Player
             if (_instance == null)
                 return false;
             return _instance._lastInvUpdate > startTimeTicks;
+        }
+
+        public void AddItem(int itemId, int count)
+        {
+            _player.package.AddItemStacked(itemId, count, 0, out _);
         }
     }
 }
