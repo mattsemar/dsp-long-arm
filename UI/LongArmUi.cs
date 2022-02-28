@@ -50,7 +50,7 @@ namespace LongArm.UI
         protected static readonly Resolution DefaultRes = new Resolution { width = 1920, height = 1080 };
         public bool Visible { get; set; }
         private bool _requestHide;
-        public Rect windowRect = new Rect(ScaleToDefault(300), ScaleToDefault(150, false), ScaleToDefault(250), ScaleToDefault(400, false));
+        public Rect windowRect = new Rect(ScaleToDefault(300), ScaleToDefault(150, false), ScaleToDefault(250), ScaleToDefault(425, false));
 
         public bool needReinit;
 
@@ -310,11 +310,11 @@ namespace LongArm.UI
             GUILayout.BeginHorizontal();
 
             GUILayout.Label("");
-            var maxHeightSz = ItemUtil.GetItemImageHeight() / 2;
-
-            var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
-            var currSelected = new GUIContent(_targetedProliferatorItem.iconSprite.texture, $"Spray all {_targetedProliferatorItem.Name.Translate()} on belts and in machines to selected level");
-
+            var maxHeightSz = ItemUtil.GetItemImageHeight() / 4;
+            var maxHeight = GUILayout.MaxHeight(maxHeightSz);
+            var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz, maxHeight);
+            var currSelected = new GUIContent(_targetedProliferatorItem.iconSprite.texture, $"Spray {_targetedProliferatorItem.Name.Translate()} in factory to selected level");
+            rect.y += 4;
             var button = GUI.Button(rect,  currSelected);
             if (button)
             {
@@ -326,7 +326,18 @@ namespace LongArm.UI
 
             DrawLevels(ref _targetedProliferatorLevel, 1, 3);
 
-            var pressed = GUILayout.Button(new GUIContent("Spray", "Spray items"));
+            var sprayButtonTip =
+                "Show prompt with estimates for how much spray will be used and how many items will be affected.";
+            if (PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FreeBuild)
+            {
+                sprayButtonTip = "Show prompt with estimates for how many items will be affected.";
+            }
+            if (!PluginConfig.sprayInventoryContents.Value && !PluginConfig.sprayStationContents.Value)
+            {
+                sprayButtonTip += "\r\nNote that spraying station and inventory contents can be enabled in config";
+            }
+            
+            var pressed = GUILayout.Button(new GUIContent("Spray", sprayButtonTip));
             if (pressed)
             {
                 if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.SprayItems(_targetedProliferatorItem, _targetedProliferatorLevel);
@@ -588,22 +599,18 @@ namespace LongArm.UI
         private void DrawLevels(ref int newVal, int min, int max)
         {
             GUILayout.BeginHorizontal();
-            // newVal = Mathf.Clamp(newVal, min, max);
-            var selections = new string[max - min + 1];
+            GUIContent[] selections = new GUIContent[max - min + 1];
             for (int i = 0; i < selections.Length; i++)
             {
+                var selectionText = $"{i + 1}";
                 if (newVal - 1 == i)
                 {
-                    selections[i] =   $"<b>{i + 1}</b>";                 
+                    selectionText =   $"<b>{i + 1}</b>";                 
                 }
-                else
-                {
-                    selections[i] = $"{i + 1}";
-                }
+
+                selections[i] = new GUIContent(selectionText, $"Use level {i + 1} proliferator");
             }
             var selectionGrid = GUILayout.SelectionGrid(newVal - 1, selections, 3);
-            // return new GUIContent(label, $"<b>{parentDescription}</b> {currentlySelectedIndicator} {sval}");
-            // var result = GUILayout.VerticalSlider(newVal, min, max);
             if (newVal - 1 != selectionGrid)
             { 
                 newVal = selectionGrid + 1;

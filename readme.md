@@ -63,6 +63,11 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.4.2
+Bugfix: Fixed issue where tooltips were not being shown
+Update: Changed to show prompt with info on sprayed items for FreeBuild mode and when no items to spray were found
+Update: Added support for spraying items in labs set to research mode
+
 #### v1.4.1
 Update: Added additional assembler types for spray targeting (labs, silos & ejectors)  
 

@@ -37,10 +37,8 @@ namespace LongArm.Scripts
             _freeMode = PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FreeBuild;
         }
 
-        public bool Prompt()
+        public void Prompt()
         {
-            if (PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FreeBuild)
-                return true;
             _skippedItems = 0;
             _neededSprayAccumulator = 0;
             var (prolifCount, prolifInc) = InventoryManager.instance.CountItems(_proliferatorItem.ID);
@@ -55,6 +53,7 @@ namespace LongArm.Scripts
             var sprayNeededForStations = 0;
             var sprayNeededForInventory = 0;
             var sprayForBelts = SprayBeltItems(true);
+            var sprayForInserters = SprayInserterContents(true);
             var sprayForAssemblers = SprayAssemblerContents(true);
             var sprayForGenerators = SprayGenerators(true);
             if (PluginConfig.sprayInventoryContents.Value)
@@ -85,13 +84,7 @@ namespace LongArm.Scripts
                 }
             }
 
-            if (_neededSprayAccumulator == 0)
-            {
-                Log.LogAndPopupMessage($"No items found to spray. Found {_skippedItems} already sprayed");
-                return false;
-            }
-
-            var sprayItemTypeBreakdownMessage = "Items to spray: ";
+            var sprayItemTypeBreakdownMessage = $"Found {_neededSprayAccumulator} items to spray: ";
             if (PluginConfig.sprayStationContents.Value)
             {
                 sprayItemTypeBreakdownMessage += $"\r\n\t{sprayNeededForStations} in stations";
@@ -103,6 +96,7 @@ namespace LongArm.Scripts
             }
 
             sprayItemTypeBreakdownMessage += $"\r\n\t{sprayForBelts} on belts";
+            sprayItemTypeBreakdownMessage += $"\r\n\t{sprayForInserters} in sorters";
             sprayItemTypeBreakdownMessage += $"\r\n\t{sprayForAssemblers} in assemblers";
 
             if (sprayForGenerators > 0 || _targetItem.FuelType > 0 || _targetItem.ID == 1209)
@@ -124,26 +118,34 @@ namespace LongArm.Scripts
             }
 
             message += $"{sprayItemTypeBreakdownMessage}\r\n";
-            message +=
-                $"This will use {itemsToUse} of {_proliferatorItem.name} from inventory";
-            var actualItemsToUseRate = Mathf.FloorToInt(spraysPerSprayItem);
-            if (prolifInc > 0)
-            {
-                message += $" (at boosted rate of {actualItemsToUseRate} sprays / spray item).";
-            }
-            else
-            {
-                message += $" (at {_proliferatorItem.HpMax} sprays / spray item).";
-            }
 
-            message += $"\r\nYou currently have {prolifCount} in inventory";
-            if (itemsToUse > prolifCount)
+            if (PluginConfig.buildBuildHelperMode.Value == BuildHelperMode.FreeBuild)
             {
-                message += " so not all items will be sprayed";
+                message += $"\r\nAll items will be sprayed and no proliferator from inventory is needed";
             }
             else
             {
-                message += " so all targeted items will be sprayed.";
+                message +=
+                    $"This will use {itemsToUse} of {_proliferatorItem.name} from inventory";
+                var actualItemsToUseRate = Mathf.FloorToInt(spraysPerSprayItem);
+                if (prolifInc > 0)
+                {
+                    message += $" (at boosted rate of {actualItemsToUseRate} sprays / spray item).";
+                }
+                else
+                {
+                    message += $" (at {_proliferatorItem.HpMax} sprays / spray item).";
+                }
+
+                message += $"\r\nYou currently have {prolifCount} in inventory";
+                if (itemsToUse > prolifCount)
+                {
+                    message += " so not all items will be sprayed";
+                }
+                else
+                {
+                    message += " so all targeted items will be sprayed.";
+                }
             }
 
             if (PluginConfig.sprayStationContents.Value && sprayNeededForStations > 0 && _neededSprayAccumulator > _availableSprays)
@@ -153,7 +155,6 @@ namespace LongArm.Scripts
 
             UIMessageBox.Show("Spray factory items", message,
                 "Ok", "Cancel", 0, DoSprayAction, () => { Log.LogAndPopupMessage("Canceled"); });
-            return false;
         }
 
         public void DoSprayAction()
@@ -171,6 +172,7 @@ namespace LongArm.Scripts
                 }
 
                 SprayBeltItems(false);
+                SprayInserterContents(false);
                 SprayAssemblerContents(false);
                 SprayGenerators(false);
                 return;
@@ -189,6 +191,13 @@ namespace LongArm.Scripts
                 return;
             }
 
+            SprayInserterContents(false);
+            if (_neededSprayAccumulator >= _availableSprays)
+            {
+                InventoryManager.instance.RemoveItemImmediately(_proliferatorItem.ID, availableSpraysRslt.cnt, out _);
+                Log.Debug("halting after spraying sorters");
+                return;
+            }
 
             SprayAssemblerContents(false);
             if (_neededSprayAccumulator >= _availableSprays)
@@ -316,11 +325,8 @@ namespace LongArm.Scripts
 
                 _neededSprayAccumulator += beltItemCount - currentlySprayedItems;
 
-                if (!_freeMode)
-                {
-                    resultItemsNeedingSpray += beltItemCount - currentlySprayedItems;
-                    _skippedItems += currentlySprayedItems;
-                }
+                resultItemsNeedingSpray += beltItemCount - currentlySprayedItems;
+                _skippedItems += currentlySprayedItems;
 
                 if (!countOnly)
                 {
@@ -338,14 +344,55 @@ namespace LongArm.Scripts
             return resultItemsNeedingSpray;
         }
 
-        // given a stack of items find out how many you could consider to be sprayed at the target level
-        // 
-        // example, 20 items, targetLvl 3
-        // currentInc = 3 return 0
-        // currentInc = 4 return 1
-        // currentInc = 7 return 1
-        // currentInc = 19 * 4, return 19
-        // currentInc = 19 * 4 + 1, return 19
+        private int SprayInserterContents(bool countOnly)
+        {
+            var inserterCursor = _factorySystem.inserterCursor;
+            var inserterPool = _factorySystem.inserterPool;
+            var resultItemsNeedingSpray = 0;
+            for (int i = 0; i < inserterCursor; i++)
+            {
+                ref var inserter = ref inserterPool[i];
+                if (inserter.itemId == 0 || inserter.itemId != _targetItem.ID || inserter.itemCount <= 0)
+                    continue;
+
+                var itemCount = inserter.itemCount;
+                var currentlySprayedItems = CountSprayedItems(itemCount, _targetLevelIndex, inserter.itemInc);
+                // if item is already sprayed above target level, skip it
+                if (currentlySprayedItems >= itemCount)
+                {
+                    _skippedItems += itemCount;
+                    continue;
+                }
+
+                _neededSprayAccumulator += itemCount - currentlySprayedItems;
+
+                resultItemsNeedingSpray += itemCount - currentlySprayedItems;
+                _skippedItems += currentlySprayedItems;
+
+                if (!countOnly)
+                {
+                    if (_freeMode || _availableSprays >= _neededSprayAccumulator)
+                    {
+                        inserter.itemInc = (byte)(_targetLevelIndex * itemCount);
+                    }
+                    else if (!_freeMode)
+                    {
+                        return resultItemsNeedingSpray;
+                    }
+                }
+            }
+
+            return resultItemsNeedingSpray;
+        }
+
+// given a stack of items find out how many you could consider to be sprayed at the target level
+// 
+// example, 20 items, targetLvl 3
+// currentInc = 3 return 0
+// currentInc = 4 return 1
+// currentInc = 7 return 1
+// currentInc = 19 * 4, return 19
+// currentInc = 19 * 4 + 1, return 19
         private static int CountSprayedItems(int count, int targetLevelIndex, int currentInc)
         {
             if (currentInc == 0 || count == 0)
@@ -356,10 +403,10 @@ namespace LongArm.Scripts
             return currentInc / targetLevelIndex;
         }
 
-        // See GetPropValue in ItemProto for about how the 'Numbers of Sprays' thing is calculated, but
-        // for level 3 spray sprayed at level 3 you get 60 + 15 = 75 sprays 
-        // level 2 spray sprayed at level 3: 24 + 6 = 30
-        // here we're actually returning that times the number of items so for 2 items fully sprayed we'd return 150
+// See GetPropValue in ItemProto for about how the 'Numbers of Sprays' thing is calculated, but
+// for level 3 spray sprayed at level 3 you get 60 + 15 = 75 sprays 
+// level 2 spray sprayed at level 3: 24 + 6 = 30
+// here we're actually returning that times the number of items so for 2 items fully sprayed we'd return 150
         private static int DetermineNumbersOfSprays(ItemProto sprayItem, int count, int inc)
         {
             if (count == 0)
@@ -402,62 +449,16 @@ namespace LongArm.Scripts
                         continue;
                     }
 
-                    _neededSprayAccumulator += assemblerComponent.served[j] - _targetLevelIndex;
+                    _neededSprayAccumulator += assemblerComponent.served[j] - sprayedItemCount;
 
-                    if (!_freeMode)
-                    {
-                        resultItemsNeedingSpray += assemblerComponent.served[j] - sprayedItemCount;
-                        _skippedItems += sprayedItemCount;
-                    }
+                    resultItemsNeedingSpray += assemblerComponent.served[j] - sprayedItemCount;
+                    _skippedItems += sprayedItemCount;
 
                     if (!countOnly)
                     {
                         if (_freeMode || _availableSprays >= _neededSprayAccumulator)
                         {
                             assemblerComponent.incServed[j] = assemblerComponent.served[j] * _targetLevelIndex;
-                        }
-                        else if (!_freeMode)
-                        {
-                            return resultItemsNeedingSpray;
-                        }
-                    }
-                }
-            }
-
-            for (int i = 0; i < _factorySystem.labCursor; i++)
-            {
-                ref var lab = ref _factorySystem.labPool[i];
-                if (lab.id == 0 || lab.requireCounts == null)
-                    continue;
-
-                for (int j = 0; j < lab.requireCounts.Length; j++)
-                {
-                    if (lab.requires[j] != _targetItem.ID)
-                    {
-                        continue;
-                    }
-
-                    var sprayedItemCount = CountSprayedItems(lab.served[j], _targetLevelIndex, lab.incServed[j]);
-                    // if item is already sprayed above target level, skip it
-                    if (sprayedItemCount >= lab.served[j])
-                    {
-                        _skippedItems += lab.served[j];
-                        continue;
-                    }
-
-                    _neededSprayAccumulator += lab.served[j] - _targetLevelIndex;
-
-                    if (!_freeMode)
-                    {
-                        resultItemsNeedingSpray += lab.served[j] - sprayedItemCount;
-                        _skippedItems += sprayedItemCount;
-                    }
-
-                    if (!countOnly)
-                    {
-                        if (_freeMode || _availableSprays >= _neededSprayAccumulator)
-                        {
-                            lab.incServed[j] = lab.served[j] * _targetLevelIndex;
                         }
                         else if (!_freeMode)
                         {
@@ -481,13 +482,11 @@ namespace LongArm.Scripts
                     continue;
                 }
 
-                _neededSprayAccumulator += fracter.fluidInputCount - _targetLevelIndex;
+                _neededSprayAccumulator += fracter.fluidInputCount - sprayedItemCount;
 
-                if (!_freeMode)
-                {
-                    resultItemsNeedingSpray += fracter.fluidInputCount - sprayedItemCount;
-                    _skippedItems += sprayedItemCount;
-                }
+                resultItemsNeedingSpray += fracter.fluidInputCount - sprayedItemCount;
+                _skippedItems += sprayedItemCount;
+
 
                 if (!countOnly)
                 {
@@ -516,13 +515,10 @@ namespace LongArm.Scripts
                     continue;
                 }
 
-                _neededSprayAccumulator += ejector.bulletCount - _targetLevelIndex;
+                _neededSprayAccumulator += ejector.bulletCount - sprayedItemCount;
 
-                if (!_freeMode)
-                {
-                    resultItemsNeedingSpray += ejector.bulletCount - sprayedItemCount;
-                    _skippedItems += sprayedItemCount;
-                }
+                resultItemsNeedingSpray += ejector.bulletCount - sprayedItemCount;
+                _skippedItems += sprayedItemCount;
 
                 if (!countOnly)
                 {
@@ -551,13 +547,10 @@ namespace LongArm.Scripts
                     continue;
                 }
 
-                _neededSprayAccumulator += silo.bulletCount - _targetLevelIndex;
+                _neededSprayAccumulator += silo.bulletCount - sprayedItemCount;
 
-                if (!_freeMode)
-                {
-                    resultItemsNeedingSpray += silo.bulletCount - sprayedItemCount;
-                    _skippedItems += sprayedItemCount;
-                }
+                resultItemsNeedingSpray += silo.bulletCount - sprayedItemCount;
+                _skippedItems += sprayedItemCount;
 
                 if (!countOnly)
                 {
@@ -568,6 +561,99 @@ namespace LongArm.Scripts
                     else if (!_freeMode)
                     {
                         return resultItemsNeedingSpray;
+                    }
+                }
+            }
+
+            return resultItemsNeedingSpray + SprayLabContents(countOnly);
+        }
+
+        private int SprayLabContents(bool countOnly)
+        {
+            var resultItemsNeedingSpray = 0;
+            for (int i = 0; i < _factorySystem.labCursor; i++)
+            {
+                ref var lab = ref _factorySystem.labPool[i];
+                if (lab.id == 0)
+                    continue;
+                if (lab.matrixMode)
+                {
+                    if (lab.requireCounts == null)
+                        continue;
+                    for (int j = 0; j < lab.requireCounts.Length; j++)
+                    {
+                        if (lab.requires[j] != _targetItem.ID)
+                        {
+                            continue;
+                        }
+
+                        var sprayedItemCount = CountSprayedItems(lab.served[j], _targetLevelIndex, lab.incServed[j]);
+                        // if item is already sprayed above target level, skip it
+                        if (sprayedItemCount >= lab.served[j])
+                        {
+                            _skippedItems += lab.served[j];
+                            continue;
+                        }
+
+                        _neededSprayAccumulator += lab.served[j] - sprayedItemCount;
+
+                        resultItemsNeedingSpray += lab.served[j] - sprayedItemCount;
+                        _skippedItems += sprayedItemCount;
+
+                        if (!countOnly)
+                        {
+                            if (_freeMode || _availableSprays >= _neededSprayAccumulator)
+                            {
+                                lab.incServed[j] = lab.served[j] * _targetLevelIndex;
+                            }
+                            else if (!_freeMode)
+                            {
+                                return resultItemsNeedingSpray;
+                            }
+                        }
+                    }
+                }
+                else if (lab.techId > 0)
+                {
+                    var techProto = LDB.techs.Select(lab.techId);
+                    Log.Debug($"tech proto {JsonUtility.ToJson(techProto, true)}");
+                    if (techProto?.Items == null || techProto.Items.Length == 0)
+                        continue;
+                    for (int index = 0; index < techProto.Items.Length; ++index)
+                    {
+                        var item = techProto.Items[index];
+                        if (item != _targetItem.ID)
+                            continue;
+                        int matrixIndex = item - LabComponent.matrixIds[0];
+                        if (matrixIndex >= 0 && matrixIndex < lab.matrixServed.Length)
+                        {
+                            var servedCount = lab.matrixServed[matrixIndex] / 3600;
+                            var servedInc = lab.matrixIncServed[matrixIndex] / 3600;
+                            var sprayedItemCount = CountSprayedItems(servedCount, _targetLevelIndex, servedInc);
+                            // if item is already sprayed above target level, skip it
+                            if (sprayedItemCount >= servedCount)
+                            {
+                                _skippedItems += servedCount;
+                                continue;
+                            }
+
+                            _neededSprayAccumulator += servedCount - sprayedItemCount;
+
+                            resultItemsNeedingSpray += servedCount - sprayedItemCount;
+                            _skippedItems += sprayedItemCount;
+
+                            if (!countOnly)
+                            {
+                                if (_freeMode || _availableSprays >= _neededSprayAccumulator)
+                                {
+                                    lab.matrixIncServed[matrixIndex] = lab.matrixServed[matrixIndex] * _targetLevelIndex;
+                                }
+                                else if (!_freeMode)
+                                {
+                                    return resultItemsNeedingSpray;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -605,11 +691,8 @@ namespace LongArm.Scripts
 
                     _neededSprayAccumulator += store.count - sprayedItemCount;
 
-                    if (!_freeMode)
-                    {
-                        resultItemsNeedingSpray += store.count - sprayedItemCount;
-                        _skippedItems += sprayedItemCount;
-                    }
+                    resultItemsNeedingSpray += store.count - sprayedItemCount;
+                    _skippedItems += sprayedItemCount;
 
                     if (!countOnly)
                     {
@@ -652,11 +735,8 @@ namespace LongArm.Scripts
 
                 _neededSprayAccumulator += grid.count - sprayedItemCount;
 
-                if (!_freeMode)
-                {
-                    resultItemsNeedingSpray += grid.count - sprayedItemCount;
-                    _skippedItems += sprayedItemCount;
-                }
+                resultItemsNeedingSpray += grid.count - sprayedItemCount;
+                _skippedItems += sprayedItemCount;
 
                 if (!countOnly)
                 {
@@ -674,7 +754,7 @@ namespace LongArm.Scripts
             return resultItemsNeedingSpray;
         }
 
-        // this one works with the catalyst point (count *3600) to avoid too much loss of precision 
+// this one works with the catalyst point (count *3600) to avoid too much loss of precision 
         int SprayGenerators(bool countOnly)
         {
             var resultItemsNeedingSpray = 0;
@@ -701,11 +781,10 @@ namespace LongArm.Scripts
                     }
 
                     _neededSprayAccumulator += beansInRr - (sprayedItemCountPoint / 3600);
-                    if (!_freeMode)
-                    {
-                        resultItemsNeedingSpray += beansInRr - (sprayedItemCountPoint / 3600);
-                        _skippedItems += sprayedItemCountPoint / 3600;
-                    }
+
+                    resultItemsNeedingSpray += beansInRr - (sprayedItemCountPoint / 3600);
+                    _skippedItems += sprayedItemCountPoint / 3600;
+
 
                     if (!countOnly)
                     {
@@ -732,11 +811,8 @@ namespace LongArm.Scripts
 
                     _neededSprayAccumulator += generator.fuelCount - sprayedItemCount;
 
-                    if (!_freeMode)
-                    {
-                        resultItemsNeedingSpray += generator.fuelCount - sprayedItemCount;
-                        _skippedItems += sprayedItemCount;
-                    }
+                    resultItemsNeedingSpray += generator.fuelCount - sprayedItemCount;
+                    _skippedItems += sprayedItemCount;
 
                     if (!countOnly)
                     {

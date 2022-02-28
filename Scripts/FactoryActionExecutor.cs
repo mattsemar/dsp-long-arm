@@ -346,10 +346,7 @@ namespace LongArm.Scripts
                 return;
             }
             var factorySprayer = new FactorySprayer(itemFilter, targetLevel);
-            if (factorySprayer.Prompt())
-            {
-                factorySprayer.DoSprayAction();
-            }
+            factorySprayer.Prompt();
         }
     }
 }
