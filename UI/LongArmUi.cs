@@ -301,24 +301,20 @@ namespace LongArm.UI
             });
 
             AddAction("Factory Tour", "Show/Hide Tour", "Show tour window", () => { TourFactoryScript.Instance.Visible = !TourFactoryScript.Instance.Visible; });
-            // AddProliferatorAction();
+            AddProliferatorAction();
             GUILayout.EndVertical();
         }
 
         private void AddProliferatorAction()
         {
-            // GUILayout.BeginVertical("Box");
-
             GUILayout.BeginHorizontal();
 
             GUILayout.Label("");
             var maxHeightSz = ItemUtil.GetItemImageHeight() / 2;
 
-            // GUILayout.BeginHorizontal(GUI.skin.label, maxHeight);
             var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz);
             var currSelected = new GUIContent(_targetedProliferatorItem.iconSprite.texture, $"Spray all {_targetedProliferatorItem.Name.Translate()} on belts and in machines to selected level");
 
-            // GUI.Label(rect, currSelected);
             var button = GUI.Button(rect,  currSelected);
             if (button)
             {
@@ -329,7 +325,6 @@ namespace LongArm.UI
             }
 
             DrawLevels(ref _targetedProliferatorLevel, 1, 3);
-            // DrawRangeField(ref _targetedProliferatorLevel, 1, 3);
 
             var pressed = GUILayout.Button(new GUIContent("Spray", "Spray items"));
             if (pressed)

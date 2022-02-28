@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net48</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <LangVersion>10.0</LangVersion>
+        <LangVersion>latest</LangVersion>
         <Version>1.2.2</Version>
         <Authors>Semar</Authors>
         <Company/>

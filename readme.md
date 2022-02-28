@@ -18,6 +18,15 @@ limited by the number of updates per second your computer can do while adding fa
 
 Note that the helper mode used is saved in config now so be cautious when switching between different save games to make sure the mode you want is the one currently selected. 
 
+### Factory Spray
+Use spray from inventory to spray factory items on belts, in assembler input slots, in generators (even ray receivers). 
+Enable `SprayStationContents` and `SprayInventoryContents` in config to also spray inventory or station contents
+
+This feature was built for cases where adding a spray coater to an existing production line
+takes a long time to go into effect (lenses in ray receivers). This helps by jumpstarting the process a bit.
+
+Note that when FreeBuild mode is enabled then no spray from inventory will be used.
+
 ### Factory Tour Mode
 
 (Default keybind to open window is Control + W)
@@ -53,6 +62,9 @@ Click the `Install with Mod Manager` link above. Make sure dependencies are inst
 now supplied from CommonAPI
 
 ## Changelog
+
+#### v1.4.0
+Update: Added support for spraying factory items from inventory  
 
 #### v1.3.6
 Update: Add ability to override drag build range. Thanks Raptor for suggestion  

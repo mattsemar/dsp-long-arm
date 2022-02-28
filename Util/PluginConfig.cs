@@ -19,6 +19,7 @@ namespace LongArm.Util
         public static ConfigEntry<bool> overrideInspectionRange;
         public static ConfigEntry<int> dragBuildOverride;
         public static ConfigEntry<bool> sprayStationContents;
+        public static ConfigEntry<bool> sprayInventoryContents;
         
         public static ConfigEntry<bool> topOffDrones;
         public static ConfigEntry<bool> topOffVessels;
@@ -52,6 +53,8 @@ namespace LongArm.Util
             dragBuildOverride.SettingChanged += OnDragBuildOverrideChange;
             sprayStationContents = confFile.Bind("Main", "SprayStationContents", false,
                 "Include items in stations when spraying");
+            sprayInventoryContents = confFile.Bind("Main", "SprayInventoryContents", false,
+                "Include items in inventory when spraying");
             currentSprayTargetItem = confFile.Bind("UIInternal", "Current spray target item", 1006,
                 new ConfigDescription("Internal only, tracks currently selected spray target item",
                     new AcceptableValueList<int>(LDB.items.dataArray.ToList().Select(i => i.ID).ToArray())));
