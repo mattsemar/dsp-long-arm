@@ -63,6 +63,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.4.1
+Update: Added additional assembler types for spray targeting (labs, silos & ejectors)  
+
 #### v1.4.0
 Update: Added support for spraying factory items from inventory  
 

@@ -47,6 +47,11 @@ namespace LongArm.Scripts
             int originalSprayAvail;
             _availableSprays = originalSprayAvail = DetermineNumbersOfSprays(_proliferatorItem, prolifCount, prolifInc);
             var spraysPerSprayItem = (originalSprayAvail / (float)prolifCount);
+            if (prolifCount == 0)
+            {
+                spraysPerSprayItem = _proliferatorItem.HpMax;
+            }
+
             var sprayNeededForStations = 0;
             var sprayNeededForInventory = 0;
             var sprayForBelts = SprayBeltItems(true);
@@ -112,6 +117,7 @@ namespace LongArm.Scripts
 
 
             var itemsToUse = Mathf.CeilToInt(_neededSprayAccumulator / spraysPerSprayItem);
+
             if (_neededSprayAccumulator % Mathf.FloorToInt(spraysPerSprayItem) == 0)
             {
                 itemsToUse = _neededSprayAccumulator / Mathf.FloorToInt(spraysPerSprayItem);
@@ -269,7 +275,7 @@ namespace LongArm.Scripts
                     {
                         itemsToRemove = Mathf.CeilToInt(spraysToRemove / (float)spraysPerSprayItemAtLocation);
                     }
-                    
+
                     inv.TakeItemFromGrid(i, ref sprayItemId, ref itemsToRemove, out int inc);
                     spraysToRemove -= itemsToRemove * spraysPerSprayItemAtLocation;
                     Log.Debug($"Removed {itemsToRemove} of spray at grid index: {i}, remainInc={grid.inc}, remainCount={grid.count}. inc={inc}");
@@ -414,6 +420,154 @@ namespace LongArm.Scripts
                         {
                             return resultItemsNeedingSpray;
                         }
+                    }
+                }
+            }
+
+            for (int i = 0; i < _factorySystem.labCursor; i++)
+            {
+                ref var lab = ref _factorySystem.labPool[i];
+                if (lab.id == 0 || lab.requireCounts == null)
+                    continue;
+
+                for (int j = 0; j < lab.requireCounts.Length; j++)
+                {
+                    if (lab.requires[j] != _targetItem.ID)
+                    {
+                        continue;
+                    }
+
+                    var sprayedItemCount = CountSprayedItems(lab.served[j], _targetLevelIndex, lab.incServed[j]);
+                    // if item is already sprayed above target level, skip it
+                    if (sprayedItemCount >= lab.served[j])
+                    {
+                        _skippedItems += lab.served[j];
+                        continue;
+                    }
+
+                    _neededSprayAccumulator += lab.served[j] - _targetLevelIndex;
+
+                    if (!_freeMode)
+                    {
+                        resultItemsNeedingSpray += lab.served[j] - sprayedItemCount;
+                        _skippedItems += sprayedItemCount;
+                    }
+
+                    if (!countOnly)
+                    {
+                        if (_freeMode || _availableSprays >= _neededSprayAccumulator)
+                        {
+                            lab.incServed[j] = lab.served[j] * _targetLevelIndex;
+                        }
+                        else if (!_freeMode)
+                        {
+                            return resultItemsNeedingSpray;
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < _factorySystem.fractionateCursor; i++)
+            {
+                ref var fracter = ref _factorySystem.fractionatePool[i];
+                if (fracter.id == 0 || fracter.fluidId != _targetItem.ID)
+                    continue;
+
+                var sprayedItemCount = CountSprayedItems(fracter.fluidInputCount, _targetLevelIndex, fracter.fluidInputInc);
+                // if item is already sprayed above target level, skip it
+                if (sprayedItemCount >= fracter.fluidInputCount)
+                {
+                    _skippedItems += fracter.fluidInputCount;
+                    continue;
+                }
+
+                _neededSprayAccumulator += fracter.fluidInputCount - _targetLevelIndex;
+
+                if (!_freeMode)
+                {
+                    resultItemsNeedingSpray += fracter.fluidInputCount - sprayedItemCount;
+                    _skippedItems += sprayedItemCount;
+                }
+
+                if (!countOnly)
+                {
+                    if (_freeMode || _availableSprays >= _neededSprayAccumulator)
+                    {
+                        fracter.fluidInputInc = fracter.fluidInputCount * _targetLevelIndex;
+                    }
+                    else if (!_freeMode)
+                    {
+                        return resultItemsNeedingSpray;
+                    }
+                }
+            }
+
+            for (int i = 0; i < _factorySystem.ejectorCursor; i++)
+            {
+                ref var ejector = ref _factorySystem.ejectorPool[i];
+                if (ejector.id == 0 || ejector.bulletId != _targetItem.ID)
+                    continue;
+
+                var sprayedItemCount = CountSprayedItems(ejector.bulletCount, _targetLevelIndex, ejector.bulletInc);
+                // if item is already sprayed above target level, skip it
+                if (sprayedItemCount >= ejector.bulletCount)
+                {
+                    _skippedItems += ejector.bulletCount;
+                    continue;
+                }
+
+                _neededSprayAccumulator += ejector.bulletCount - _targetLevelIndex;
+
+                if (!_freeMode)
+                {
+                    resultItemsNeedingSpray += ejector.bulletCount - sprayedItemCount;
+                    _skippedItems += sprayedItemCount;
+                }
+
+                if (!countOnly)
+                {
+                    if (_freeMode || _availableSprays >= _neededSprayAccumulator)
+                    {
+                        ejector.bulletInc = ejector.bulletCount * _targetLevelIndex;
+                    }
+                    else if (!_freeMode)
+                    {
+                        return resultItemsNeedingSpray;
+                    }
+                }
+            }
+
+            for (int i = 0; i < _factorySystem.siloCursor; i++)
+            {
+                ref var silo = ref _factorySystem.siloPool[i];
+                if (silo.id == 0 || silo.bulletId != _targetItem.ID)
+                    continue;
+
+                var sprayedItemCount = CountSprayedItems(silo.bulletCount, _targetLevelIndex, silo.bulletInc);
+                // if item is already sprayed above target level, skip it
+                if (sprayedItemCount >= silo.bulletCount)
+                {
+                    _skippedItems += silo.bulletCount;
+                    continue;
+                }
+
+                _neededSprayAccumulator += silo.bulletCount - _targetLevelIndex;
+
+                if (!_freeMode)
+                {
+                    resultItemsNeedingSpray += silo.bulletCount - sprayedItemCount;
+                    _skippedItems += sprayedItemCount;
+                }
+
+                if (!countOnly)
+                {
+                    if (_freeMode || _availableSprays >= _neededSprayAccumulator)
+                    {
+                        silo.bulletInc = silo.bulletCount * _targetLevelIndex;
+                    }
+                    else if (!_freeMode)
+                    {
+                        return resultItemsNeedingSpray;
                     }
                 }
             }
