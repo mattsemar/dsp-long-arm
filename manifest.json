@@ -1,11 +1,11 @@
 {
-  "name": "LongArm",
-  "version_number": "1.4.2",
-  "website_url": "https://github.com/mattsemar/dsp-long-arm",
-  "description": "Extend construction range, open factory machine windows from map view, enable faster planet-wide blueprint placement. Now with actions for loading power generators with fuel and support for adding drones to stations and proliferating factory items",
-  "dependencies": [
-    "xiaoye97-LDBTool-2.0.1",
-    "xiaoye97-BepInEx-5.4.17",
-    "CommonAPI-CommonAPI-1.3.0"
-  ]
+    "name":  "LongArm",
+    "version_number":  "1.4.3",
+    "website_url":  "https://github.com/mattsemar/dsp-long-arm",
+    "description":  "Extend construction range, open factory machine windows from map view, enable faster planet-wide blueprint placement. Now with actions for loading power generators with fuel and support for adding drones to stations and proliferating factory items",
+    "dependencies":  [
+                         "xiaoye97-LDBTool-2.0.1",
+                         "xiaoye97-BepInEx-5.4.17",
+                         "CommonAPI-CommonAPI-1.3.0"
+                     ]
 }
