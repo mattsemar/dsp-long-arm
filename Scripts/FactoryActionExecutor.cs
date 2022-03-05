@@ -337,16 +337,5 @@ namespace LongArm.Scripts
             Log.Debug($"Generator type not explicitly handled for add fuel case");
             return false;
         }
-
-        public void SprayItems(ItemProto itemFilter, int targetLevel)
-        {
-            if (itemFilter == null)
-            {
-                Log.LogAndPopupMessage("Select target item type");
-                return;
-            }
-            var factorySprayer = new FactorySprayer(itemFilter, targetLevel);
-            factorySprayer.Prompt();
-        }
     }
 }

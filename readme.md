@@ -63,6 +63,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.4.3
+Update: Change inspect range to match planet size (for GS2) 
+
 #### v1.4.2
 Bugfix: Fixed issue where tooltips were not being shown
 Update: Changed to show prompt with info on sprayed items for FreeBuild mode and when no items to spray were found

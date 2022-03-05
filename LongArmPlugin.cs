@@ -184,6 +184,11 @@ namespace LongArm
             if (!PluginConfig.overrideInspectionRange.Value)
                 return true;
             __result = 600f;
+            if (GameMain.localPlanet != null && GameMain.localPlanet.realRadius > 201)
+            {
+                __result = (int)(GameMain.localPlanet.realRadius * Mathf.PI) + 200;
+            }
+
             return false;
         }
 

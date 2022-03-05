@@ -47,7 +47,7 @@ namespace LongArm.UI
 
     public class LongArmUi : MonoBehaviour
     {
-        protected static readonly Resolution DefaultRes = new Resolution { width = 1920, height = 1080 };
+        protected static readonly Resolution DefaultRes = new() { width = 1920, height = 1080 };
         public bool Visible { get; set; }
         private bool _requestHide;
         public Rect windowRect = new Rect(ScaleToDefault(300), ScaleToDefault(150, false), ScaleToDefault(250), ScaleToDefault(425, false));
@@ -67,7 +67,7 @@ namespace LongArm.UI
         private int _chosenPlanet = -1;
         private BuildHelperMode _buildHelperMode = BuildHelperMode.None;
         private GUIStyle _textStyle;
-        private readonly int _defaultFontSize = ScaleToDefault(12);
+        private int _defaultFontSize = ScaleToDefault(12);
         public static LongArmUi instance;
         private bool _popupOpened;
         private ItemProto _tourModeItemFilter;
@@ -76,6 +76,9 @@ namespace LongArm.UI
         private DateTime _controlLastActive = DateTime.Now.AddDays(-1);
         private ItemProto _targetedProliferatorItem = LDB.items.Select(PluginConfig.currentSprayTargetItem.Value);
         private int _targetedProliferatorLevel = 1;
+        private bool _sprayPromptOpen;
+        private Resolution _previousResolution;
+        private int _previousUiHeight;
 
         private GUIStyle ToolTipStyle { get; set; }
 
@@ -210,17 +213,43 @@ namespace LongArm.UI
                 PluginConfig.currentSprayTargetItem.Value = 1006;
             }
 
+            if (ResolutionChanged())
+            {
+                windowRect = new Rect(ScaleToDefault(300), ScaleToDefault(150, false), ScaleToDefault(250), ScaleToDefault(425, false));
+                _defaultFontSize = ScaleToDefault(12);
+                
+            }
+            
             if (_tooltipBg == null && !needReinit)
             {
                 return;
             }
-
             var background = new Texture2D(1, 1, TextureFormat.RGBA32, false);
             background.SetPixel(0, 0, Color.black);
             background.Apply();
             _tooltipBg = background;
             InitWindowRect();
             needReinit = false;
+        }
+
+        private bool ResolutionChanged()
+        {
+            if (!Screen.currentResolution.Equals(_previousResolution))
+            {
+                Log.Debug($"Detected resolution change {_previousResolution}");
+                _previousResolution = Screen.currentResolution;
+                _previousUiHeight = DSPGame.globalOption.uiLayoutHeight;
+                return true;
+            }
+
+            if (DSPGame.globalOption.uiLayoutHeight != _previousUiHeight)
+            {
+                Log.Debug($"Detected layout height change {_previousUiHeight}");
+                _previousUiHeight = DSPGame.globalOption.uiLayoutHeight;
+                return true;
+            }
+
+            return false;
         }
 
         private void WindowFnWrapper(int id)
@@ -310,12 +339,13 @@ namespace LongArm.UI
             GUILayout.BeginHorizontal();
 
             GUILayout.Label("");
-            var maxHeightSz = ItemUtil.GetItemImageHeight() / 4;
+            var numerMulti = ScaleToDefault(1, false);
+            var maxHeightSz = numerMulti * ItemUtil.GetItemImageHeight() / 4;
             var maxHeight = GUILayout.MaxHeight(maxHeightSz);
             var rect = GUILayoutUtility.GetRect(maxHeightSz, maxHeightSz, maxHeight);
             var currSelected = new GUIContent(_targetedProliferatorItem.iconSprite.texture, $"Spray {_targetedProliferatorItem.Name.Translate()} in factory to selected level");
             rect.y += 4;
-            var button = GUI.Button(rect,  currSelected);
+            var button = GUI.Button(rect, currSelected);
             if (button)
             {
                 Vector2 pos = new Vector2(-100, 238);
@@ -332,18 +362,51 @@ namespace LongArm.UI
             {
                 sprayButtonTip = "Show prompt with estimates for how many items will be affected.";
             }
+
             if (!PluginConfig.sprayInventoryContents.Value && !PluginConfig.sprayStationContents.Value)
             {
                 sprayButtonTip += "\r\nNote that spraying station and inventory contents can be enabled in config";
             }
-            
+
+            if (_sprayPromptOpen)
+            {
+                GUI.enabled = false;
+            }
             var pressed = GUILayout.Button(new GUIContent("Spray", sprayButtonTip));
             if (pressed)
             {
-                if (FactoryActionExecutor.Instance != null) FactoryActionExecutor.Instance.SprayItems(_targetedProliferatorItem, _targetedProliferatorLevel);
+                SprayItems(_targetedProliferatorItem, _targetedProliferatorLevel);
             }
 
+            GUI.enabled = true;
+
             GUILayout.EndHorizontal();
+        }
+
+        private void SprayItems(ItemProto targetedProliferatorItem, int targetedProliferatorLevel)
+        {
+            if (targetedProliferatorItem == null)
+            {
+                Log.LogAndPopupMessage("Select target item type");
+                return;
+            }
+
+            var factorySprayer = new FactorySprayer(targetedProliferatorItem, targetedProliferatorLevel);
+            factorySprayer.onPrompt += OnSprayPromptOpened;
+            factorySprayer.onCompleted += OnSprayCompleted;
+            factorySprayer.Prompt();
+        }
+
+        private void OnSprayCompleted()
+        {
+            _sprayPromptOpen = false;
+            Log.Debug("Enabling spray button");
+        }
+
+        private void OnSprayPromptOpened()
+        {
+            Log.Debug("Disabling spray button");
+            _sprayPromptOpen = true;
         }
 
         private void AddAction(string actionCategory, string buttonText, string buttonTip, Action buttonAction)
@@ -382,6 +445,7 @@ namespace LongArm.UI
 
             GUILayout.EndHorizontal();
         }
+
         private void DrawOverrideDragBuildRange()
         {
             GUILayout.BeginHorizontal();
@@ -472,13 +536,11 @@ namespace LongArm.UI
 
         private void InitWindowRect()
         {
-            var width = Mathf.Min(Screen.width, ScaleToDefault(650));
-            var height = Screen.height < 560 ? Screen.height : ScaleToDefault(560, false);
+            var width = ScaleToDefault(250);
+            var height =  ScaleToDefault(425, false);
             var offsetX = Mathf.RoundToInt((Screen.width - width) / 2f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 2f);
             windowRect = new Rect(offsetX, offsetY, width, height);
-
-            Mathf.RoundToInt(windowRect.width / 2.5f);
         }
 
         public static GUIContent GetModeAsGuiContent(string sourceValue, string parentDescription, bool currentlySelected)
@@ -548,6 +610,7 @@ namespace LongArm.UI
             else
             {
                 ratio = (float)Screen.currentResolution.height / DefaultRes.height;
+                // ratio = (float)DSPGame.globalOption.uiLayoutHeight / DefaultRes.height;
                 return (int)(input * ratio);
             }
 
@@ -605,14 +668,15 @@ namespace LongArm.UI
                 var selectionText = $"{i + 1}";
                 if (newVal - 1 == i)
                 {
-                    selectionText =   $"<b>{i + 1}</b>";                 
+                    selectionText = $"<b>{i + 1}</b>";
                 }
 
                 selections[i] = new GUIContent(selectionText, $"Use level {i + 1} proliferator");
             }
+
             var selectionGrid = GUILayout.SelectionGrid(newVal - 1, selections, 3);
             if (newVal - 1 != selectionGrid)
-            { 
+            {
                 newVal = selectionGrid + 1;
             }
 

@@ -17,6 +17,8 @@ namespace LongArm.Scripts
         private int _skippedItems;
         private int _neededSprayAccumulator;
         private int _availableSprays;
+        public event System.Action onPrompt;
+        public event System.Action onCompleted;
 
         public FactorySprayer(ItemProto targetItem, int targetLevel)
         {
@@ -153,8 +155,20 @@ namespace LongArm.Scripts
                 message += "\r\n\tNote: station contents are not partially sprayed to avoid waste. Add more spray to inventory if stations contents remain unsprayed";
             }
 
+            NotifyPromptOpen();
             UIMessageBox.Show("Spray factory items", message,
-                "Ok", "Cancel", 0, DoSprayAction, () => { Log.LogAndPopupMessage("Canceled"); });
+                "Ok", "Cancel", 0, DoSprayAction, () => { Log.LogAndPopupMessage("Canceled"); NotifyCompleted();  });
+        }
+
+        private void NotifyPromptOpen()
+        {
+            if (onPrompt != null)
+                onPrompt();
+        }
+        private void NotifyCompleted()
+        {
+            if (onCompleted != null)
+                onCompleted();
         }
 
         public void DoSprayAction()
@@ -175,6 +189,7 @@ namespace LongArm.Scripts
                 SprayInserterContents(false);
                 SprayAssemblerContents(false);
                 SprayGenerators(false);
+                NotifyCompleted();
                 return;
             }
 
@@ -188,6 +203,7 @@ namespace LongArm.Scripts
             {
                 InventoryManager.instance.RemoveItemImmediately(_proliferatorItem.ID, availableSpraysRslt.cnt, out _);
                 Log.Debug("halting after spraying belts");
+                NotifyCompleted();
                 return;
             }
 
@@ -196,6 +212,7 @@ namespace LongArm.Scripts
             {
                 InventoryManager.instance.RemoveItemImmediately(_proliferatorItem.ID, availableSpraysRslt.cnt, out _);
                 Log.Debug("halting after spraying sorters");
+                NotifyCompleted();
                 return;
             }
 
@@ -204,6 +221,7 @@ namespace LongArm.Scripts
             {
                 InventoryManager.instance.RemoveItemImmediately(_proliferatorItem.ID, availableSpraysRslt.cnt, out _);
                 Log.Debug("halting after spraying assemblers");
+                NotifyCompleted();
                 return;
             }
 
@@ -213,6 +231,7 @@ namespace LongArm.Scripts
             {
                 InventoryManager.instance.RemoveItemImmediately(_proliferatorItem.ID, availableSpraysRslt.cnt, out _);
                 Log.Debug("halting after spraying generators");
+                NotifyCompleted();
                 return;
             }
 
@@ -223,6 +242,7 @@ namespace LongArm.Scripts
                 {
                     InventoryManager.instance.RemoveItemImmediately(_proliferatorItem.ID, availableSpraysRslt.cnt, out _);
                     Log.Debug("halting during inventory spray");
+                    NotifyCompleted();
                     return;
                 }
             }
@@ -234,6 +254,7 @@ namespace LongArm.Scripts
                 {
                     InventoryManager.instance.RemoveItemImmediately(_proliferatorItem.ID, availableSpraysRslt.cnt, out _);
                     Log.Debug("halting during station spray");
+                    NotifyCompleted();
                     return;
                 }
             }
@@ -242,6 +263,7 @@ namespace LongArm.Scripts
             // we gave estimate based on the average spray level of all spray in inventory, but
             // when we only remove some items from inv they may be at different level than average used for estimate
             RemoveSpraysFromInventory(_neededSprayAccumulator, GameMain.mainPlayer.package, _proliferatorItem);
+            NotifyCompleted();
         }
 
         private static void RemoveSpraysFromInventory(int spraysToRemove, StorageComponent inv, ItemProto sprayItem)
