@@ -490,9 +490,9 @@ namespace LongArm.Scripts
                 }
             }
 
-            for (int i = 0; i < _factorySystem.fractionateCursor; i++)
+            for (int i = 0; i < _factorySystem.fractionatorCursor; i++)
             {
-                ref var fracter = ref _factorySystem.fractionatePool[i];
+                ref var fracter = ref _factorySystem.fractionatorPool[i];
                 if (fracter.id == 0 || fracter.fluidId != _targetItem.ID)
                     continue;
 

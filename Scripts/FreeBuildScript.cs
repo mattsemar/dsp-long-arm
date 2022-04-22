@@ -66,7 +66,7 @@ namespace LongArm.Scripts
         {
             try
             {
-                if (GameMain.data.gameAbnormality.IsGameNormal() && !PluginConfig.playerConfirmedAbnormalityTrigger)
+                if (GameMain.data.abnormalData.NothingAbnormal() && !PluginConfig.playerConfirmedAbnormalityTrigger)
                 {
                     Log.LogPopupWithFrequency("Not doing freebuild until confirmation received. Open UI and switch build mode off of FreeBuild and then back on");
                     return;

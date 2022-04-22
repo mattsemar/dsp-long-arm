@@ -525,9 +525,9 @@ namespace LongArm.UI
 
         private bool AbnormalityConfirmed()
         {
-            if (GameMain.data?.gameAbnormality == null)
+            if (GameMain.data?.abnormalData == null)
                 return false;
-            if (!GameMain.data.gameAbnormality.IsGameNormal())
+            if (!GameMain.data.abnormalData.NothingAbnormal())
                 return true;
 
             return PluginConfig.playerConfirmedAbnormalityTrigger;

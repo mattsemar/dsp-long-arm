@@ -23,7 +23,7 @@ namespace LongArm
     {
         private const string PluginGuid = "semarware.dysonsphereprogram.LongArm";
         private const string PluginName = "LongArm";
-        private const string PluginVersion = "1.4.3";
+        private const string PluginVersion = "1.4.4";
         private Harmony _harmony;
         public static LongArmPlugin instance;
         private bool _initted;

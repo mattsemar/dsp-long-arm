@@ -63,6 +63,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.4.4
+Update: update to sync with latest changes in game.
+
 #### v1.4.3
 Update: Change inspect range to match planet size (for GS2) 
 
