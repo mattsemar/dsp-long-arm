@@ -153,7 +153,7 @@ namespace LongArm.FactoryLocation
                 if (entity.powerGenId > 0)
                 {
                     var generator = _factory.powerSystem.genPool[entity.powerGenId];
-                    var isFuelConsumer = generator.fuelHeat > 0 && generator.fuelId > 0 && generator.productId == 0;
+                    var isFuelConsumer = (generator.fuelHeat > 0 && generator.fuelId > 0 && generator.productId == 0) || generator.catalystId > 0;
                     if (!isFuelConsumer)
                         continue;
 
@@ -435,6 +435,56 @@ namespace LongArm.FactoryLocation
                     cfx.RemoveFilter(NeedItemFilter.DEFAULT);
                 }
                 else if (_currentFilter is NeedItemFilter)
+                {
+                    _currentFilter = MatchAllFilter.DEFAULT;
+                }
+            }
+
+            _dirty = true;
+            Sync();
+        }
+        public void UseStackingFilter(bool toggle)
+        {
+            if (toggle)
+            {
+                if (_currentFilter is MatchAllFilter)
+                {
+                    _currentFilter = StackingItemFilter.DEFAULT;
+                }
+                else if (_currentFilter is ItemFilter)
+                {
+                    var newFilter = new CompoundEntityFilter();
+                    newFilter.AddFilter(_currentFilter);
+                    newFilter.AddFilter(StackingItemFilter.DEFAULT);
+                    _currentFilter = newFilter;
+                }
+                else if (_currentFilter is CompoundEntityFilter cfx)
+                {
+                    cfx.AddFilter(StackingItemFilter.DEFAULT);
+                }
+                else if (_currentFilter is StackingItemFilter) // this doesn't make sense
+                {
+                    // no-op?
+                    Log.Warn("Trying to stacking item filter, but already have it");
+                }
+            }
+            else
+            {
+                if (_currentFilter is MatchAllFilter)
+                {
+                    // doesn't make sense, just warn
+                    Log.Warn("Trying to clear stacking item filter, but not set (MatchAll)");
+                }
+                else if (_currentFilter is ItemFilter)
+                {
+                    // doesn't make sense, just warn
+                    Log.Warn("Trying to clear stacking item filter, but not set (ItemFilter)");
+                }
+                else if (_currentFilter is CompoundEntityFilter cfx)
+                {
+                    cfx.RemoveFilter(StackingItemFilter.DEFAULT);
+                }
+                else if (_currentFilter is StackingItemFilter)
                 {
                     _currentFilter = MatchAllFilter.DEFAULT;
                 }

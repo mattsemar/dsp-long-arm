@@ -12,7 +12,7 @@ namespace LongArm.FactoryLocation
 
     public class CompoundEntityFilter : IFactoryEntityFilter
     {
-        private readonly List<IFactoryEntityFilter> _filters = new List<IFactoryEntityFilter>();
+        private readonly List<IFactoryEntityFilter> _filters = new();
 
         public void AddFilter(IFactoryEntityFilter filter)
         {
@@ -48,8 +48,8 @@ namespace LongArm.FactoryLocation
         private NeedItemFilter()
         {
         }
-            
-        public static readonly NeedItemFilter DEFAULT = new NeedItemFilter();
+
+        public static readonly NeedItemFilter DEFAULT = new();
 
         public bool Matches(EntityLocation entityLocation)
         {
@@ -72,7 +72,6 @@ namespace LongArm.FactoryLocation
                 {
                     var generatorComponent = entityLocation.generator;
                     return !(generatorComponent.curFuelId != 0 || generatorComponent.fuelEnergy != 0L || generatorComponent.fuelId != 0);
-
                 }
 
                 if (entityLocation.station != null && entityLocation.station.id > 0)
@@ -133,6 +132,79 @@ namespace LongArm.FactoryLocation
         }
     }
 
+    public class StackingItemFilter : IFactoryEntityFilter
+    {
+        private StackingItemFilter()
+        {
+        }
+
+        public static readonly StackingItemFilter DEFAULT = new();
+
+        public bool Matches(EntityLocation entityLocation)
+        {
+            try
+            {
+                if (entityLocation.assembler.id > 0)
+                {
+                    for (var k = 0; k < entityLocation.assembler.products.Length; k++)
+                    {
+                        if (entityLocation.assembler.produced[k] >= entityLocation.assembler.productCounts[k] * 8)
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                if (entityLocation.generator.id > 0)
+                {
+                    var generatorComponent = entityLocation.generator;
+                    if (generatorComponent.catalystId > 0)
+                    {
+                        return generatorComponent.productCount > 5;
+                    }
+
+                    return false;
+                }
+
+                if (entityLocation.station != null && entityLocation.station.id > 0)
+                {
+                    return false;
+                }
+
+                if (entityLocation.storage != null && entityLocation.storage.id > 0)
+                {
+                    return false;
+                }
+
+                if (entityLocation.vein.id > 0)
+                {
+                    return false;
+                }
+
+                if (entityLocation.lab.id > 0)
+                {
+                    var lab = entityLocation.lab;
+                    if (!lab.matrixMode || lab.products == null)
+                    {
+                        return false;
+                    }
+                    
+                    return lab.time >= lab.timeSpend;
+                }
+
+                Log.Warn($"Something went wrong, we have an unexpected entity type {entityLocation} in NeedItemFilter");
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"got some bug still ${e.Message} {e.StackTrace} {e}");
+                return true;
+            }
+        }
+    }
+
     public class ItemFilter : IFactoryEntityFilter, IEqualityComparer<IFactoryEntityFilter>
     {
         private readonly int _item;
@@ -155,7 +227,7 @@ namespace LongArm.FactoryLocation
 
             if (entityLocation.generator.id > 0)
             {
-                return entityLocation.generator.curFuelId == _item;
+                return entityLocation.generator.curFuelId == _item || entityLocation.generator.catalystId == _item;
             }
 
             if (entityLocation.station != null && entityLocation.station.id > 0)

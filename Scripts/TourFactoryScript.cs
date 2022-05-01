@@ -34,6 +34,7 @@ namespace LongArm.Scripts
         private readonly Action _currentAction = new Action();
         private static ItemProto _filteredItem;
         private static bool _filteringEntitiesMissingItem;
+        private static bool _filteringEntitiesStacking;
         private bool _requestHide;
         private Vector2 _scrollViewVector;
         private Rect windowRect = Rect.zero;
@@ -250,6 +251,7 @@ namespace LongArm.Scripts
 
             AddItemFilter();
             AddNeedItemFilter();
+            AddStackingFilter();
 
             GUILayout.BeginVertical();
             var prevButton = GUILayout.Button(new GUIContent("Previous", "Go back to previous location in tour"));
@@ -321,6 +323,22 @@ namespace LongArm.Scripts
                 _filteringEntitiesMissingItem = toggle;
             }
 
+
+            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
+        }
+        private void AddStackingFilter()
+        {
+            GUILayout.BeginVertical("Box");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Backed up");
+
+            var toggle = GUILayout.Toggle(_filteringEntitiesStacking, new GUIContent("Stacking", "Only include entities whose output is stacking"));
+            if (toggle != _filteringEntitiesStacking)
+            {
+                FactoryLocationProvider.Instance?.UseStackingFilter(toggle);
+                _filteringEntitiesStacking = toggle;
+            }
 
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();

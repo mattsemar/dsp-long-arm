@@ -63,6 +63,9 @@ now supplied from CommonAPI
 
 ## Changelog
 
+#### v1.4.5
+Update: add factory tour option for finding ray receivers whose output is backed up (stacking)
+
 #### v1.4.4
 Update: update to sync with latest changes in game.
 
